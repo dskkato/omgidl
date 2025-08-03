@@ -189,6 +189,18 @@ class TestParseIDL(unittest.TestCase):
             ],
         )
 
+    def test_field_with_annotation(self):
+        schema = """
+        struct A {
+            @default(value=5)
+            int32 num;
+        };
+        """
+        result = parse_idl(schema)
+        field = result[0].fields[0]
+        self.assertIn("default", field.annotations)
+        self.assertEqual(field.annotations["default"].named_params["value"], 5)
+
     def test_constant_enum_reference(self):
         schema = """\
         enum COLORS {

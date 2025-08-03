@@ -1,21 +1,21 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 from lark import Lark, Transformer
 
 # A slightly larger subset grammar supporting modules, structs, constants, enums,
-# typedefs and unions
+# typedefs and unions, with basic annotation support
 IDL_GRAMMAR = r"""
 start: definition+
 
-definition: module
-          | struct
-          | constant
-          | enum
-          | typedef
-          | union
+definition: annotations? module
+          | annotations? struct
+          | annotations? constant
+          | annotations? enum
+          | annotations? typedef
+          | annotations? union
 
 module: "module" NAME "{" definition* "}" semicolon?
 
@@ -23,14 +23,14 @@ struct: "struct" NAME "{" field* "}" semicolon?
 
 enum: "enum" NAME "{" enumerator ("," enumerator)* "}" semicolon?
 
-enumerator: NAME enum_value?
+enumerator: annotations? NAME enum_value?
 enum_value: "@value" "(" INT ")"
 
 constant: "const" type NAME "=" const_value semicolon
 const_value: STRING -> const_string
            | const_atom ("+" const_atom)*
 
-?const_atom: SIGNED_INT
+?const_atom: SIGNED_NUMBER
           | scoped_name
 
 typedef: "typedef" type NAME array? semicolon
@@ -39,7 +39,7 @@ union: "union" NAME "switch" "(" type ")" "{" union_case+ union_default? "}" sem
 union_case: "case" const_value ":" field
 union_default: "default" ":" field
 
-field: type NAME array? semicolon
+field: annotations? type NAME array? semicolon
 
 type: sequence_type
     | BUILTIN_TYPE
@@ -54,10 +54,16 @@ NAME: /[A-Za-z_][A-Za-z0-9_]*/
 
 array: "[" INT "]"
 
+annotations: annotation*
+annotation: "@" NAME ("(" annotation_params ")")?
+annotation_params: annotation_named_params | const_value
+annotation_named_params: annotation_named_param ("," annotation_named_param)*
+annotation_named_param: NAME "=" const_value
+
 semicolon: ";"
 
 %import common.INT
-%import common.SIGNED_INT
+%import common.SIGNED_NUMBER
 %import common.ESCAPED_STRING -> STRING
 %import common.WS
 %ignore WS
@@ -70,24 +76,28 @@ class Field:
     array_length: Optional[int] = None
     is_sequence: bool = False
     sequence_bound: Optional[int] = None
+    annotations: Dict[str, "Annotation"] = field(default_factory=dict)
 
 
 @dataclass
 class Constant:
     name: str
     type: str
-    value: Union[int, str]
+    value: Union[int, float, str]
+    annotations: Dict[str, "Annotation"] = field(default_factory=dict)
 
 
 @dataclass
 class Enum:
     name: str
     enumerators: List[Constant] = field(default_factory=list)
+    annotations: Dict[str, "Annotation"] = field(default_factory=dict)
 
 @dataclass
 class Struct:
     name: str
     fields: List[Field] = field(default_factory=list)
+    annotations: Dict[str, "Annotation"] = field(default_factory=dict)
 
 @dataclass
 class Typedef:
@@ -96,6 +106,7 @@ class Typedef:
     array_length: Optional[int] = None
     is_sequence: bool = False
     sequence_bound: Optional[int] = None
+    annotations: Dict[str, "Annotation"] = field(default_factory=dict)
 
 @dataclass
 class UnionCase:
@@ -108,6 +119,7 @@ class Union:
     switch_type: str
     cases: List[UnionCase] = field(default_factory=list)
     default: Optional[Field] = None
+    annotations: Dict[str, "Annotation"] = field(default_factory=dict)
 
 @dataclass
 class Module:
@@ -115,6 +127,15 @@ class Module:
     definitions: List[Struct | Module | Constant | Enum | Typedef | Union] = field(
         default_factory=list
     )
+    annotations: Dict[str, "Annotation"] = field(default_factory=dict)
+
+
+@dataclass
+class Annotation:
+    name: str
+    type: str
+    value: Optional[Union[int, float, str]] = None
+    named_params: Dict[str, Union[int, float, str]] = field(default_factory=dict)
 
 class _Transformer(Transformer):
     _NORMALIZATION = {
@@ -158,7 +179,11 @@ class _Transformer(Transformer):
         return list(items)
 
     def definition(self, items):
-        return items[0]
+        if len(items) == 1:
+            return items[0]
+        ann, node = items
+        node.annotations = ann
+        return node
     def NAME(self, token):
         return str(token)
 
@@ -183,8 +208,11 @@ class _Transformer(Transformer):
     def INT(self, token):
         return int(token)
 
-    def SIGNED_INT(self, token):
-        return int(token)
+    def SIGNED_NUMBER(self, token):
+        text = str(token)
+        if "." in text or "e" in text or "E" in text:
+            return float(text)
+        return int(text)
 
     def STRING(self, token):
         return str(token)[1:-1]
@@ -197,6 +225,10 @@ class _Transformer(Transformer):
         return None
 
     def field(self, items):
+        annotations: Dict[str, Annotation] = {}
+        if items and isinstance(items[0], dict):
+            annotations = items[0]
+            items = items[1:]
         type_, name, *rest = items
         array_length = None
         for itm in rest:
@@ -214,6 +246,7 @@ class _Transformer(Transformer):
             array_length=array_length,
             is_sequence=is_sequence,
             sequence_bound=sequence_bound,
+            annotations=annotations,
         )
 
     def const_string(self, items):
@@ -221,16 +254,25 @@ class _Transformer(Transformer):
         return value
 
     def const_value(self, items):
-        total = 0
+        if len(items) == 1:
+            item = items[0]
+            if isinstance(item, (int, float)):
+                return item
+            if item not in self._constants:
+                raise ValueError(f"Unknown identifier '{item}'")
+            return self._constants[item]
+        total: float | int = 0
         for idx, item in enumerate(items):
-            if isinstance(item, int):
+            if isinstance(item, (int, float)):
                 val = item
             else:
                 if item not in self._constants:
                     raise ValueError(f"Unknown identifier '{item}'")
                 val = self._constants[item]
-                if not isinstance(val, int):
-                    raise ValueError(f"Identifier '{item}' does not evaluate to an integer")
+                if not isinstance(val, (int, float)):
+                    raise ValueError(
+                        f"Identifier '{item}' does not evaluate to a number"
+                    )
             if idx == 0:
                 total = val
             else:
@@ -288,25 +330,53 @@ class _Transformer(Transformer):
         return val
 
     def enumerator(self, items):
+        annotations: Dict[str, Annotation] = {}
+        if items and isinstance(items[0], dict):
+            annotations = items[0]
+            items = items[1:]
         name = items[0]
         value = items[1] if len(items) > 1 else None
-        return (name, value)
+        return (name, value, annotations)
 
     def enum(self, items):
         name = items[0]
         enumerators_raw = [it for it in items[1:] if isinstance(it, tuple)]
         constants: List[Constant] = []
         current = -1
-        for enum_name, enum_val in enumerators_raw:
+        for enum_name, enum_val, ann in enumerators_raw:
             if enum_val is not None:
                 current = enum_val
             else:
                 current += 1
-            constants.append(Constant(name=enum_name, type="uint32", value=current))
+            constants.append(
+                Constant(name=enum_name, type="uint32", value=current, annotations=ann)
+            )
             # Register enumerator both as unscoped and scoped (EnumName::Enumerator)
             self._constants[enum_name] = current
             self._constants[f"{name}::{enum_name}"] = current
         return Enum(name=name, enumerators=constants)
+
+    def annotation_named_param(self, items):
+        return (items[0], items[1])
+
+    def annotation_named_params(self, items):
+        return dict(items)
+
+    def annotation_params(self, items):
+        return items[0]
+
+    def annotation(self, items):
+        name = items[0]
+        if len(items) == 1:
+            return Annotation(name=name, type="no-params")
+        params = items[1]
+        if isinstance(params, dict):
+            return Annotation(name=name, type="named-params", named_params=params)
+        else:
+            return Annotation(name=name, type="const-param", value=params)
+
+    def annotations(self, items):
+        return {ann.name: ann for ann in items}
 
     def struct(self, items):
         name = items[0]

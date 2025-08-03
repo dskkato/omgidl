@@ -8,6 +8,7 @@ from .parse import (
     Typedef,
     Union,
     UnionCase,
+    Annotation,
 )
 
 __all__ = [
@@ -20,4 +21,5 @@ __all__ = [
     "Typedef",
     "Union",
     "UnionCase",
+    "Annotation",
 ]

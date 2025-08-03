@@ -70,6 +70,8 @@ class MessageWriter:
         new_offset = offset
         for field in definition:
             value = msg.get(field.name)
+            if value is None:
+                value = _get_default(field)
             new_offset = self._field_size(field, value, new_offset)
         return new_offset
 
@@ -145,6 +147,8 @@ class MessageWriter:
         new_offset = offset
         for field in definition:
             value = msg.get(field.name)
+            if value is None:
+                value = _get_default(field)
             new_offset = self._write_field(field, value, buffer, new_offset)
         return new_offset
 
@@ -270,3 +274,12 @@ def _find_struct(defs: List[Struct | Module], name: str) -> Optional[Struct]:
             if found is not None:
                 return found
     return None
+
+
+def _get_default(field: Field) -> Any:
+    ann = field.annotations.get("default")
+    if ann is None:
+        return None
+    if ann.value is not None:
+        return ann.value
+    return ann.named_params.get("value")

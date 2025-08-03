@@ -1,4 +1,5 @@
 import unittest
+from typing import Any, Dict
 
 from omgidl_parser.parse import parse_idl, Struct, Field
 from omgidl_serialization import MessageWriter
@@ -112,6 +113,21 @@ class TestMessageWriter(unittest.TestCase):
             writer.write_message(over)
         with self.assertRaises(ValueError):
             writer.calculate_byte_size(over)
+
+    def test_default_annotation(self) -> None:
+        schema = """
+        struct A {
+            @default(value=5)
+            int32 num;
+        };
+        """
+        defs = parse_idl(schema)
+        writer = MessageWriter("A", defs)
+        msg: Dict[str, Any] = {}
+        written = writer.write_message(msg)
+        expected = bytes([0, 1, 0, 0, 5, 0, 0, 0])
+        self.assertEqual(written, expected)
+        self.assertEqual(writer.calculate_byte_size(msg), len(expected))
 
 
 if __name__ == "__main__":
