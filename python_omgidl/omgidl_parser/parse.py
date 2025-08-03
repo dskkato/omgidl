@@ -70,7 +70,7 @@ STRING_KW: "string"
 WSTRING_KW: "wstring"
 NAME: /[A-Za-z_][A-Za-z0-9_]*/
 
-array: "[" INT "]"
+array: ("[" INT "]")+
 
 semicolon: ";"
 
@@ -93,7 +93,7 @@ annotations: annotation+
 class Field:
     name: str
     type: str
-    array_length: Optional[int] = None
+    array_lengths: List[int] = field(default_factory=list)
     is_sequence: bool = False
     sequence_bound: Optional[int] = None
     string_upper_bound: Optional[int] = None
@@ -127,7 +127,7 @@ class Struct:
 class Typedef:
     name: str
     type: str
-    array_length: Optional[int] = None
+    array_lengths: List[int] = field(default_factory=list)
     is_sequence: bool = False
     sequence_bound: Optional[int] = None
     annotations: dict[str, Any] = field(default_factory=dict)
@@ -250,8 +250,7 @@ class _Transformer(Transformer):
 
 
     def array(self, items):
-        (length,) = items
-        return length
+        return [int(itm) for itm in items]
 
     def semicolon(self, _):
         return None
@@ -277,10 +276,10 @@ class _Transformer(Transformer):
             annotations = items[0]
             idx = 1
         type_, name, *rest = items[idx:]
-        array_length = None
+        array_lengths: List[int] = []
         for itm in rest:
-            if isinstance(itm, int):
-                array_length = itm
+            if isinstance(itm, list):
+                array_lengths = itm
         is_sequence = False
         sequence_bound = None
         string_upper_bound = None
@@ -299,7 +298,7 @@ class _Transformer(Transformer):
         return Field(
             name=name,
             type=type_,
-            array_length=array_length,
+            array_lengths=array_lengths,
             is_sequence=is_sequence,
             sequence_bound=sequence_bound,
             string_upper_bound=string_upper_bound,
@@ -351,10 +350,10 @@ class _Transformer(Transformer):
 
     def typedef(self, items):
         type_, name, *rest = items
-        array_length = None
+        array_lengths: List[int] = []
         for itm in rest:
-            if isinstance(itm, int):
-                array_length = itm
+            if isinstance(itm, list):
+                array_lengths = itm
         is_sequence = False
         sequence_bound = None
         if isinstance(type_, tuple) and type_[0] == "sequence":
@@ -364,7 +363,7 @@ class _Transformer(Transformer):
         return Typedef(
             name=name,
             type=type_,
-            array_length=array_length,
+            array_lengths=array_lengths,
             is_sequence=is_sequence,
             sequence_bound=sequence_bound,
         )

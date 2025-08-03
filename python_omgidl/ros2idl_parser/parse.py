@@ -106,7 +106,7 @@ def _process_definition(
 
 def _convert_field(field: IDLField, typedefs: dict[str, IDLTypedef]) -> MessageDefinitionField:
     t = field.type
-    array_length = field.array_length
+    array_lengths = list(field.array_lengths)
     is_sequence = field.is_sequence
     seq_bound = field.sequence_bound
     visited: set[str] = set()
@@ -114,8 +114,8 @@ def _convert_field(field: IDLField, typedefs: dict[str, IDLTypedef]) -> MessageD
         visited.add(t)
         td = typedefs[t]
         t = td.type
-        if td.array_length is not None and array_length is None and not is_sequence:
-            array_length = td.array_length
+        if td.array_lengths and not array_lengths and not is_sequence:
+            array_lengths = list(td.array_lengths)
         if td.is_sequence:
             is_sequence = True
             if td.sequence_bound is not None:
@@ -123,8 +123,8 @@ def _convert_field(field: IDLField, typedefs: dict[str, IDLTypedef]) -> MessageD
     return MessageDefinitionField(
         type=t,
         name=field.name,
-        is_array=array_length is not None or is_sequence,
-        array_length=array_length,
+        is_array=bool(array_lengths) or is_sequence,
+        array_length=array_lengths[0] if array_lengths else None,,
         array_upper_bound=seq_bound if is_sequence else None,
     )
 
