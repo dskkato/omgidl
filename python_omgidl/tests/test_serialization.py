@@ -20,6 +20,17 @@ class TestMessageWriter(unittest.TestCase):
         self.assertEqual(written, expected)
         self.assertEqual(writer.calculate_byte_size(msg), len(expected))
 
+    def test_constant_field_skipped(self) -> None:
+        const_field = Field(name="CONST", type="int32", is_constant=True, value=5)
+        regular_field = Field(name="num", type="int32")
+        defs = [Struct(name="A", fields=[const_field, regular_field])]
+        writer = MessageWriter("A", defs)
+        msg = {"num": 7, "CONST": 42}
+        written = writer.write_message(msg)
+        expected = bytes([0, 1, 0, 0, 7, 0, 0, 0])
+        self.assertEqual(written, expected)
+        self.assertEqual(writer.calculate_byte_size(msg), len(expected))
+
     def test_default_annotation_used(self) -> None:
         schema = """
         struct A {

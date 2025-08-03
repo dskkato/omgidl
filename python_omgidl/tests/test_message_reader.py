@@ -20,6 +20,16 @@ class TestMessageReader(unittest.TestCase):
         decoded = reader.read_message(buf)
         self.assertEqual(decoded, msg)
 
+    def test_constant_field_roundtrip(self) -> None:
+        const_field = Field(name="CONST", type="int32", is_constant=True, value=5)
+        regular_field = Field(name="num", type="int32")
+        defs = [Struct(name="A", fields=[const_field, regular_field])]
+        writer = MessageWriter("A", defs)
+        reader = MessageReader("A", defs)
+        buf = writer.write_message({"num": 7})
+        decoded = reader.read_message(buf)
+        self.assertEqual(decoded, {"CONST": 5, "num": 7})
+
     def test_big_endian_roundtrip(self) -> None:
         schema = """
         struct A {

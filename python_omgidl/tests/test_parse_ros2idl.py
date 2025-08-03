@@ -27,9 +27,9 @@ class TestParseRos2idl(unittest.TestCase):
                         MessageDefinitionField(
                             type="int16",
                             name="SHORT_CONSTANT",
-                            isConstant=True,
+                            is_constant=True,
                             value=-23,
-                            valueText="-23",
+                            value_text="-23",
                         )
                     ],
                 ),
@@ -39,7 +39,7 @@ class TestParseRos2idl(unittest.TestCase):
                         MessageDefinitionField(
                             type="int32",
                             name="input_value",
-                            isArray=False,
+                            is_array=False,
                         )
                     ],
                 ),
@@ -88,7 +88,7 @@ class TestParseRos2idl(unittest.TestCase):
                 MessageDefinition(
                     name="pkg/msg/Seq",
                     definitions=[
-                        MessageDefinitionField(type="int32", name="data", isArray=True)
+                        MessageDefinitionField(type="int32", name="data", is_array=True)
                     ],
                 )
             ],
@@ -114,8 +114,8 @@ class TestParseRos2idl(unittest.TestCase):
                         MessageDefinitionField(
                             type="int32",
                             name="data",
-                            isArray=True,
-                            arrayUpperBound=7,
+                            is_array=True,
+                            array_upper_bound=7,
                         )
                     ],
                 )

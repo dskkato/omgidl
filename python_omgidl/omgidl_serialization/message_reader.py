@@ -51,6 +51,12 @@ class MessageReader:
         msg: Dict[str, Any] = {}
         new_offset = offset
         for field in definition:
+            if getattr(field, "is_constant", False):
+                if getattr(field, "value", None) is not None:
+                    msg[field.name] = field.value
+                elif getattr(field, "default_value", None) is not None:
+                    msg[field.name] = field.default_value
+                continue
             value, new_offset = self._read_field(field, view, new_offset)
             msg[field.name] = value
         return msg, new_offset
