@@ -17,6 +17,7 @@ from .message_writer import (
     _padding,
     _primitive_size,
 )
+from .headers import read_delimiter_header, read_member_header
 from .deserialization_info_cache import (
     DeserializationInfoCache,
     FieldDeserializationInfo,
@@ -43,6 +44,8 @@ class MessageReader:
         self.root_info = self.cache.get_complex_deser_info(root)
         self._fmt_prefix = "<"
         self.encapsulation_kind = EncapsulationKind.CDR_LE
+        self._kind_uses_delimiter = False
+        self._kind_uses_member = False
 
     # public API -------------------------------------------------------------
     def read_message(self, buffer: bytes | bytearray | memoryview) -> Dict[str, Any]:
@@ -50,6 +53,24 @@ class MessageReader:
         kind = EncapsulationKind(view[1])
         self.encapsulation_kind = kind
         little = kind in _LITTLE_ENDIAN_KINDS
+        self._kind_uses_delimiter = kind in {
+            EncapsulationKind.DELIMITED_CDR2_BE,
+            EncapsulationKind.DELIMITED_CDR2_LE,
+            EncapsulationKind.PL_CDR2_BE,
+            EncapsulationKind.PL_CDR2_LE,
+            EncapsulationKind.RTPS_DELIMITED_CDR2_BE,
+            EncapsulationKind.RTPS_DELIMITED_CDR2_LE,
+            EncapsulationKind.RTPS_PL_CDR2_BE,
+            EncapsulationKind.RTPS_PL_CDR2_LE,
+        }
+        self._kind_uses_member = kind in {
+            EncapsulationKind.PL_CDR_BE,
+            EncapsulationKind.PL_CDR_LE,
+            EncapsulationKind.PL_CDR2_BE,
+            EncapsulationKind.PL_CDR2_LE,
+            EncapsulationKind.RTPS_PL_CDR2_BE,
+            EncapsulationKind.RTPS_PL_CDR2_LE,
+        }
         self._fmt_prefix = "<" if little else ">"
         offset = 4
         msg, _ = self._read_struct(self.root_info, view, offset)
@@ -60,7 +81,41 @@ class MessageReader:
         self, info: StructDeserializationInfo, view: memoryview, offset: int
     ) -> Tuple[Dict[str, Any], int]:
         msg: Dict[str, Any] = self.cache.get_complex_default(info)
+
+        use_delim = info.uses_delimiter_header and self._kind_uses_delimiter
+        use_member = info.uses_member_header and self._kind_uses_member
+
         new_offset = offset
+        if use_delim:
+            _, new_offset = read_delimiter_header(view, new_offset, self._fmt_prefix)
+
+        if use_member:
+            id_map = {
+                f.definition_id: f for f in info.fields if f.definition_id is not None
+            }
+            while True:
+                member_id, size, _must, new_offset = read_member_header(
+                    view, new_offset, self._fmt_prefix
+                )
+                if member_id is None:
+                    break
+                field_info = id_map.get(member_id)
+                if field_info is None:
+                    new_offset += size
+                    continue
+                if field_info.is_optional and size == 0:
+                    msg[field_info.name] = None
+                    continue
+                value, new_offset = self._read_field(field_info, view, new_offset)
+                msg[field_info.name] = value
+            for field in info.fields:
+                if field.name not in msg:
+                    if field.is_optional:
+                        msg[field.name] = None
+                    else:
+                        msg[field.name] = self.cache.get_field_default(field)
+            return msg, new_offset
+
         for field in info.fields:
             value, new_offset = self._read_field(field, view, new_offset)
             msg[field.name] = value
@@ -208,15 +263,22 @@ class MessageReader:
     def _read_union(
         self, info: UnionDeserializationInfo, view: memoryview, offset: int
     ) -> Tuple[Dict[str, Any], int]:
+        use_delim = info.uses_delimiter_header and self._kind_uses_delimiter
+        use_member = info.uses_member_header and self._kind_uses_member
+        new_offset = offset
+        if use_delim:
+            _, new_offset = read_delimiter_header(view, new_offset, self._fmt_prefix)
+        if use_member:
+            _, _, _, new_offset = read_member_header(view, new_offset, self._fmt_prefix)
         disc_field = Field(name="_d", type=info.definition.switch_type)
         disc_info = self.cache.build_field_info(disc_field)
-        disc, offset = self._read_field(disc_info, view, offset)
+        disc, new_offset = self._read_field(disc_info, view, new_offset)
         msg: Dict[str, Any] = {"_d": disc}
         case_field = _union_case_field(info.definition, disc)
         if case_field is None:
-            return msg, offset
+            return msg, new_offset
         case_info = self.cache.build_field_info(case_field)
-        value, offset = self._read_field(case_info, view, offset)
+        value, new_offset = self._read_field(case_info, view, new_offset)
         msg[case_field.name] = value
-        return msg, offset
+        return msg, new_offset
 

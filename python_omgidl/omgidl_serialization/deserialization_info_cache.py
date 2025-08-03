@@ -6,7 +6,6 @@ from typing import Any, Dict, List, Optional, Union
 
 from omgidl_parser.parse import Field, Module, Struct, Union as IDLUnion
 
-from .message_writer import _find_struct, _find_union, _union_case_field
 
 DEFAULT_BOOLEAN_VALUE = False
 DEFAULT_NUMERICAL_VALUE = 0
@@ -42,6 +41,7 @@ class FieldDeserializationInfo:
     string_upper_bound: Optional[int]
     sequence_bound: Optional[int]
     default_value: Any | None = None
+    definition_id: Optional[int] = None
 
 
 @dataclass
@@ -117,6 +117,8 @@ class DeserializationInfoCache:
             is_optional="optional" in field.annotations,
             string_upper_bound=field.string_upper_bound,
             sequence_bound=field.sequence_bound,
+            default_value=field.annotations.get("default"),
+            definition_id=field.annotations.get("id"),
         )
 
     def get_field_default(self, info: FieldDeserializationInfo) -> Any:
@@ -196,3 +198,39 @@ def _get_header_needs(definition: Struct | IDLUnion) -> tuple[bool, bool]:
     if "mutable" in annotations:
         return (True, True)
     return (True, False)
+
+
+def _find_struct(defs: List[Struct | Module], name: str) -> Optional[Struct]:
+    for d in defs:
+        if isinstance(d, Struct) and d.name == name:
+            return d
+        if isinstance(d, Module):
+            found = _find_struct(d.definitions, name)
+            if found is not None:
+                return found
+    return None
+
+
+def _find_union(defs: List[Struct | Module | IDLUnion], name: str) -> Optional[IDLUnion]:
+    for d in defs:
+        if isinstance(d, IDLUnion) and d.name == name:
+            return d
+        if isinstance(d, Module):
+            found = _find_union(d.definitions, name)  # type: ignore[arg-type]
+            if found is not None:
+                return found
+    return None
+
+
+def _union_case_field(union_def: IDLUnion, discriminator: Any) -> Optional[Field]:
+    for case in union_def.cases:
+        predicates = getattr(case, "predicates", None)
+        if predicates is not None:
+            if discriminator in predicates:
+                return case.field
+        value = getattr(case, "value", None)
+        if value == discriminator:
+            return case.field
+    if union_def.default is not None:
+        return union_def.default
+    return None

@@ -183,6 +183,52 @@ class TestMessageReader(unittest.TestCase):
         decoded = reader.read_message(buf)
         self.assertEqual(decoded, msg)
 
+    def test_roundtrip_optional_field_absent(self) -> None:
+        schema = """
+        @mutable
+        struct Message {
+            @optional @id(1) uint8 bittybyte;
+            @optional @id(2) uint32 bytier;
+        };
+        """
+        defs = parse_idl(schema)
+        writer = MessageWriter("Message", defs, encapsulation_kind=EncapsulationKind.PL_CDR_LE)
+        reader = MessageReader("Message", defs)
+        msg = {"bytier": 24}
+        buf = writer.write_message(msg)
+        decoded = reader.read_message(buf)
+        self.assertEqual(decoded, {"bittybyte": None, "bytier": 24})
+
+    def test_roundtrip_optional_and_missing_nonoptional(self) -> None:
+        schema = """
+        @mutable
+        struct Message {
+            @optional @id(1) uint8 bittybyte;
+            @id(2) uint32 bytier;
+        };
+        """
+        defs = parse_idl(schema)
+        writer = MessageWriter("Message", defs, encapsulation_kind=EncapsulationKind.PL_CDR_LE)
+        reader = MessageReader("Message", defs)
+        msg = {"bittybyte": 7}
+        buf = writer.write_message(msg)
+        decoded = reader.read_message(buf)
+        self.assertEqual(decoded, {"bittybyte": 7, "bytier": 0})
+
+    def test_roundtrip_delimited_struct(self) -> None:
+        schema = """
+        struct Message {
+            uint8 value;
+        };
+        """
+        defs = parse_idl(schema)
+        writer = MessageWriter("Message", defs, encapsulation_kind=EncapsulationKind.DELIMITED_CDR2_LE)
+        reader = MessageReader("Message", defs)
+        msg = {"value": 5}
+        buf = writer.write_message(msg)
+        decoded = reader.read_message(buf)
+        self.assertEqual(decoded, msg)
+
 
 if __name__ == "__main__":
     unittest.main()
