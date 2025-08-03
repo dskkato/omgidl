@@ -16,6 +16,8 @@ definition: module
           | enum
           | typedef
           | union
+          | import_stmt
+          | include_stmt
 
 module: "module" NAME "{" definition* "}" semicolon?
 
@@ -28,9 +30,13 @@ enum_value: "@value" "(" INT ")"
 
 constant: "const" type NAME "=" const_value semicolon
 const_value: STRING -> const_string
-           | const_atom ("+" const_atom)*
+           | BOOL -> const_bool
+           | const_sum
 
-?const_atom: SIGNED_INT
+const_sum: const_atom ("+" const_atom)*
+
+?const_atom: SIGNED_INT -> const_int
+          | SIGNED_FLOAT -> const_float
           | scoped_name
 
 typedef: "typedef" type NAME array? semicolon
@@ -41,15 +47,27 @@ union_default: "default" ":" field
 
 field: type NAME array? semicolon
 
+import_stmt: "import" STRING semicolon
+
+include_stmt: "#include" (STRING | "<" /[^>]+/ ">")
+
 type: sequence_type
+    | string_type
     | BUILTIN_TYPE
     | scoped_name
 
 sequence_type: "sequence" "<" type ("," INT)? ">"
 
+string_type: STRING_KW string_bound?
+           | WSTRING_KW string_bound?
+
+string_bound: "<" INT ">"
+
 scoped_name: NAME ("::" NAME)*
 
-BUILTIN_TYPE: /(unsigned\s+(short|long(\s+long)?)|long\s+double|double|float|short|long\s+long|long|int8|uint8|int16|uint16|int32|uint32|int64|uint64|byte|octet|wchar|char|string|wstring|boolean)/
+BUILTIN_TYPE: /(unsigned\s+(short|long(\s+long)?)|long\s+double|double|float|short|long\s+long|long|int8|uint8|int16|uint16|int32|uint32|int64|uint64|byte|octet|wchar|char|boolean)/
+STRING_KW: "string"
+WSTRING_KW: "wstring"
 NAME: /[A-Za-z_][A-Za-z0-9_]*/
 
 array: "[" INT "]"
@@ -57,10 +75,15 @@ array: "[" INT "]"
 semicolon: ";"
 
 %import common.INT
+BOOL.2: /(?i)true|false/
 %import common.SIGNED_INT
+%import common.SIGNED_FLOAT
 %import common.ESCAPED_STRING -> STRING
 %import common.WS
+
+COMMENT: /\/\/[^\n]*|\/\*[\s\S]*?\*\//
 %ignore WS
+%ignore COMMENT
 """
 
 @dataclass
@@ -70,13 +93,14 @@ class Field:
     array_length: Optional[int] = None
     is_sequence: bool = False
     sequence_bound: Optional[int] = None
+    string_upper_bound: Optional[int] = None
 
 
 @dataclass
 class Constant:
     name: str
     type: str
-    value: Union[int, str]
+    value: Union[int, float, bool, str]
 
 
 @dataclass
@@ -152,10 +176,10 @@ class _Transformer(Transformer):
     def __init__(self):
         super().__init__()
         # Map identifiers (constants and enum values) to their evaluated numeric values
-        self._constants: dict[str, int | str] = {}
+        self._constants: dict[str, int | float | bool | str] = {}
 
     def start(self, items):
-        return list(items)
+        return [item for item in items if item is not None]
 
     def definition(self, items):
         return items[0]
@@ -167,9 +191,12 @@ class _Transformer(Transformer):
 
     def type(self, items):
         (t,) = items
-        if isinstance(t, tuple) and t[0] == "sequence":
-            inner, bound = t[1], t[2]
-            return ("sequence", self._NORMALIZATION.get(inner, inner), bound)
+        if isinstance(t, tuple):
+            if t[0] == "sequence":
+                inner, bound = t[1], t[2]
+                return ("sequence", self._NORMALIZATION.get(inner, inner), bound)
+            base, bound = t
+            return (self._NORMALIZATION.get(base, base), bound)
         if isinstance(t, str):
             return self._NORMALIZATION.get(t, t)
         token = str(t)
@@ -180,20 +207,39 @@ class _Transformer(Transformer):
         bound = items[1] if len(items) > 1 else None
         return ("sequence", inner, bound)
 
+    def string_type(self, items):
+        base = str(items[0])
+        bound = items[1] if len(items) > 1 else None
+        if bound is not None:
+            return (base, bound)
+        return base
+
+    def string_bound(self, items):
+        (value,) = items
+        return value
+
     def INT(self, token):
         return int(token)
 
-    def SIGNED_INT(self, token):
+    def const_int(self, items):
+        (token,) = items
         return int(token)
 
     def STRING(self, token):
         return str(token)[1:-1]
+
 
     def array(self, items):
         (length,) = items
         return length
 
     def semicolon(self, _):
+        return None
+
+    def import_stmt(self, _items):
+        return None
+
+    def include_stmt(self, _items):
         return None
 
     def field(self, items):
@@ -204,38 +250,61 @@ class _Transformer(Transformer):
                 array_length = itm
         is_sequence = False
         sequence_bound = None
-        if isinstance(type_, tuple) and type_[0] == "sequence":
-            is_sequence = True
-            sequence_bound = type_[2]
-            type_ = type_[1]
+        string_upper_bound = None
+        if isinstance(type_, tuple):
+            if type_[0] == "sequence":
+                is_sequence = True
+                sequence_bound = type_[2]
+                type_ = type_[1]
+                if isinstance(type_, tuple):
+                    string_upper_bound = type_[1]
+                    type_ = type_[0]
+            else:
+                string_upper_bound = type_[1]
+                type_ = type_[0]
         return Field(
             name=name,
             type=type_,
             array_length=array_length,
             is_sequence=is_sequence,
             sequence_bound=sequence_bound,
+            string_upper_bound=string_upper_bound,
         )
 
     def const_string(self, items):
         (value,) = items
         return value
 
-    def const_value(self, items):
-        total = 0
+    def const_bool(self, items):
+        (token,) = items
+        return str(token).lower() == "true"
+
+    def const_float(self, items):
+        (token,) = items
+        return float(token)
+
+    def const_sum(self, items):
+        total = None
         for idx, item in enumerate(items):
-            if isinstance(item, int):
-                val = item
-            else:
+            if isinstance(item, str):
                 if item not in self._constants:
                     raise ValueError(f"Unknown identifier '{item}'")
                 val = self._constants[item]
-                if not isinstance(val, int):
-                    raise ValueError(f"Identifier '{item}' does not evaluate to an integer")
+            else:
+                val = item
             if idx == 0:
                 total = val
             else:
+                if not isinstance(total, (int, float)) or not isinstance(val, (int, float)):
+                    raise ValueError(
+                        "Addition only allowed on numeric constants"
+                    )
                 total += val
         return total
+
+    def const_value(self, items):
+        (value,) = items
+        return value
 
     def constant(self, items):
         # items: TYPE, NAME, value, None

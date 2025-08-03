@@ -102,6 +102,32 @@ class TestParseIDL(unittest.TestCase):
             ],
         )
 
+    def test_bounded_string_field(self):
+        schema = """
+        struct A {
+            string<5> name;
+        };
+        """
+        result = parse_idl(schema)
+        self.assertEqual(
+            result,
+            [
+                Struct(
+                    name="A",
+                    fields=[
+                        Field(
+                            name="name",
+                            type="string",
+                            array_length=None,
+                            is_sequence=False,
+                            sequence_bound=None,
+                            string_upper_bound=5,
+                        )
+                    ],
+                )
+            ],
+        )
+
     def test_enum(self):
         schema = """
         enum COLORS {
@@ -216,6 +242,28 @@ class TestParseIDL(unittest.TestCase):
             ],
         )
 
+    def test_constant_types_and_references(self):
+        schema = """\
+        const float PI = 3.14;
+        const boolean FLAG = true;
+        const string GREETING = "hello";
+        const string GREETING2 = GREETING;
+        const float PI2 = PI;
+        const boolean FLAG2 = FLAG;
+        """
+        result = parse_idl(schema)
+        self.assertEqual(
+            result,
+            [
+                Constant(name="PI", type="float32", value=3.14),
+                Constant(name="FLAG", type="boolean", value=True),
+                Constant(name="GREETING", type="string", value="hello"),
+                Constant(name="GREETING2", type="string", value="hello"),
+                Constant(name="PI2", type="float32", value=3.14),
+                Constant(name="FLAG2", type="boolean", value=True),
+            ],
+        )
+
     def test_typedef(self):
         schema = """
         typedef long MyLong;
@@ -252,6 +300,33 @@ class TestParseIDL(unittest.TestCase):
                     default=Field(name="c", type="float32"),
                 )
             ],
+        )
+
+    def test_skip_import_and_include(self):
+        schema = """
+        import "foo.idl";
+        #include "bar.idl"
+        struct A { int32 x; };
+        """
+        result = parse_idl(schema)
+        self.assertEqual(
+            result,
+            [Struct(name="A", fields=[Field(name="x", type="int32", array_length=None)])],
+        )
+
+    def test_ignore_comments(self):
+        schema = """
+        // line comment
+        /* block
+           comment */
+        struct A {
+            int32 x; // trailing comment
+        };
+        """
+        result = parse_idl(schema)
+        self.assertEqual(
+            result,
+            [Struct(name="A", fields=[Field(name="x", type="int32", array_length=None)])],
         )
 
 if __name__ == "__main__":
