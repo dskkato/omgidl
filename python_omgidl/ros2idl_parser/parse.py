@@ -124,7 +124,7 @@ def _convert_field(field: IDLField, typedefs: dict[str, IDLTypedef]) -> MessageD
         type=t,
         name=field.name,
         is_array=bool(array_lengths) or is_sequence,
-        array_length=array_lengths[0] if array_lengths else None,,
+        array_length=array_lengths[0] if array_lengths else None,
         array_upper_bound=seq_bound if is_sequence else None,
     )
 
