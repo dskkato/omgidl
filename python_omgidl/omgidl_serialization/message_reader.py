@@ -8,6 +8,8 @@ from omgidl_parser.parse import Struct, Field, Module
 from .message_writer import (
     PRIMITIVE_FORMATS,
     PRIMITIVE_SIZES,
+    EncapsulationKind,
+    _LITTLE_ENDIAN_KINDS,
     _find_struct,
     _padding,
     _primitive_size,
@@ -30,11 +32,16 @@ class MessageReader:
             )
         self.root = root
         self.definitions = definitions
+        self._fmt_prefix = "<"
+        self.encapsulation_kind = EncapsulationKind.CDR_LE
 
     # public API -------------------------------------------------------------
     def read_message(self, buffer: bytes | bytearray | memoryview) -> Dict[str, Any]:
         view = buffer if isinstance(buffer, memoryview) else memoryview(buffer)
-        # skip CDR header for little-endian PL_CDR2
+        kind = EncapsulationKind(view[1])
+        self.encapsulation_kind = kind
+        little = kind in _LITTLE_ENDIAN_KINDS
+        self._fmt_prefix = "<" if little else ">"
         offset = 4
         msg, _ = self._read(self.root.fields, view, offset)
         return msg
@@ -56,7 +63,7 @@ class MessageReader:
                 arr: List[str] = []
                 for _ in range(field.array_length):
                     offset += _padding(offset, 4)
-                    length = struct.unpack_from("<I", view, offset)[0]
+                    length = struct.unpack_from(self._fmt_prefix + "I", view, offset)[0]
                     offset += 4
                     data = bytes(view[offset : offset + length - 1])
                     offset += length
@@ -64,7 +71,7 @@ class MessageReader:
                 return arr, offset
             elif t in PRIMITIVE_SIZES:
                 size = _primitive_size(t)
-                fmt = "<" + PRIMITIVE_FORMATS[t]
+                fmt = self._fmt_prefix + PRIMITIVE_FORMATS[t]
                 arr: List[Any] = []
                 offset += _padding(offset, size)
                 for _ in range(field.array_length):
@@ -87,20 +94,20 @@ class MessageReader:
             if field.is_sequence:
                 # Variable-length sequence
                 offset += _padding(offset, 4)
-                length = struct.unpack_from("<I", view, offset)[0]
+                length = struct.unpack_from(self._fmt_prefix + "I", view, offset)[0]
                 offset += 4
                 arr: List[Any] = []
                 if t == "string":
                     for _ in range(length):
                         offset += _padding(offset, 4)
-                        slen = struct.unpack_from("<I", view, offset)[0]
+                        slen = struct.unpack_from(self._fmt_prefix + "I", view, offset)[0]
                         offset += 4
                         data = bytes(view[offset : offset + slen - 1])
                         offset += slen
                         arr.append(data.decode("utf-8"))
                 elif t in PRIMITIVE_SIZES:
                     size = _primitive_size(t)
-                    fmt = "<" + PRIMITIVE_FORMATS[t]
+                    fmt = self._fmt_prefix + PRIMITIVE_FORMATS[t]
                     offset += _padding(offset, size)
                     for _ in range(length):
                         val = struct.unpack_from(fmt, view, offset)[0]
@@ -119,14 +126,14 @@ class MessageReader:
             else:
                 if t == "string":
                     offset += _padding(offset, 4)
-                    length = struct.unpack_from("<I", view, offset)[0]
+                    length = struct.unpack_from(self._fmt_prefix + "I", view, offset)[0]
                     offset += 4
                     data = bytes(view[offset : offset + length - 1])
                     offset += length
                     return data.decode("utf-8"), offset
                 elif t in PRIMITIVE_SIZES:
                     size = _primitive_size(t)
-                    fmt = "<" + PRIMITIVE_FORMATS[t]
+                    fmt = self._fmt_prefix + PRIMITIVE_FORMATS[t]
                     offset += _padding(offset, size)
                     val = struct.unpack_from(fmt, view, offset)[0]
                     offset += size
