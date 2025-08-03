@@ -52,7 +52,7 @@ scoped_name: NAME ("::" NAME)*
 BUILTIN_TYPE: /(unsigned\s+(short|long(\s+long)?)|long\s+double|double|float|short|long\s+long|long|int8|uint8|int16|uint16|int32|uint32|int64|uint64|byte|octet|wchar|char|string|wstring|boolean)/
 NAME: /[A-Za-z_][A-Za-z0-9_]*/
 
-array: "[" INT "]"
+array: "[" INT "]" array?
 
 semicolon: ";"
 
@@ -67,7 +67,7 @@ semicolon: ";"
 class Field:
     name: str
     type: str
-    array_length: Optional[int] = None
+    array_lengths: List[int] = field(default_factory=list)
     is_sequence: bool = False
     sequence_bound: Optional[int] = None
 
@@ -93,7 +93,7 @@ class Struct:
 class Typedef:
     name: str
     type: str
-    array_length: Optional[int] = None
+    array_lengths: List[int] = field(default_factory=list)
     is_sequence: bool = False
     sequence_bound: Optional[int] = None
 
@@ -190,18 +190,19 @@ class _Transformer(Transformer):
         return str(token)[1:-1]
 
     def array(self, items):
-        (length,) = items
-        return length
+        length = items[0]
+        rest = items[1] if len(items) > 1 else []
+        return [length, *rest]
 
     def semicolon(self, _):
         return None
 
     def field(self, items):
         type_, name, *rest = items
-        array_length = None
+        array_lengths: List[int] = []
         for itm in rest:
-            if isinstance(itm, int):
-                array_length = itm
+            if isinstance(itm, list):
+                array_lengths = itm
         is_sequence = False
         sequence_bound = None
         if isinstance(type_, tuple) and type_[0] == "sequence":
@@ -211,7 +212,7 @@ class _Transformer(Transformer):
         return Field(
             name=name,
             type=type_,
-            array_length=array_length,
+            array_lengths=array_lengths,
             is_sequence=is_sequence,
             sequence_bound=sequence_bound,
         )
@@ -246,10 +247,10 @@ class _Transformer(Transformer):
 
     def typedef(self, items):
         type_, name, *rest = items
-        array_length = None
+        array_lengths: List[int] = []
         for itm in rest:
-            if isinstance(itm, int):
-                array_length = itm
+            if isinstance(itm, list):
+                array_lengths = itm
         is_sequence = False
         sequence_bound = None
         if isinstance(type_, tuple) and type_[0] == "sequence":
@@ -259,7 +260,7 @@ class _Transformer(Transformer):
         return Typedef(
             name=name,
             type=type_,
-            array_length=array_length,
+            array_lengths=array_lengths,
             is_sequence=is_sequence,
             sequence_bound=sequence_bound,
         )
