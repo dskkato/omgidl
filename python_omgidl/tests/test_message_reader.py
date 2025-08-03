@@ -2,6 +2,7 @@ import unittest
 
 from omgidl_parser.parse import parse_idl, Struct, Field
 from omgidl_serialization import MessageWriter, MessageReader, EncapsulationKind
+from constants import UNION_DISCRIMINATOR_PROPERTY_KEY
 
 
 class TestMessageReader(unittest.TestCase):
@@ -33,7 +34,7 @@ class TestMessageReader(unittest.TestCase):
         defs = parse_idl(schema)
         writer = MessageWriter("A", defs)
         reader = MessageReader("A", defs)
-        msg = {"u": {"_d": 0, "a": 7}}
+        msg = {"u": {UNION_DISCRIMINATOR_PROPERTY_KEY: 0, "a": 7}}
         buf = writer.write_message(msg)
         decoded = reader.read_message(buf)
         self.assertEqual(decoded, msg)
