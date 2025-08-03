@@ -20,16 +20,16 @@ from omgidl_parser.parse import (
 class MessageDefinitionField:
     type: str
     name: str
-    isComplex: bool = False
-    enumType: Optional[str] = None
-    isArray: bool = False
-    arrayLength: Optional[int] = None
-    isConstant: bool = False
+    is_complex: bool = False
+    enum_type: Optional[str] = None
+    is_array: bool = False
+    array_length: Optional[int] = None
+    is_constant: bool = False
     value: Optional[Union[str, int]] = None
-    valueText: Optional[str] = None
-    upperBound: Optional[int] = None
-    arrayUpperBound: Optional[int] = None
-    defaultValue: Optional[Any] = None
+    value_text: Optional[str] = None
+    upper_bound: Optional[int] = None
+    array_upper_bound: Optional[int] = None
+    default_value: Optional[Any] = None
 
 
 @dataclass
@@ -123,9 +123,9 @@ def _convert_field(field: IDLField, typedefs: dict[str, IDLTypedef]) -> MessageD
     return MessageDefinitionField(
         type=t,
         name=field.name,
-        isArray=array_length is not None or is_sequence,
-        arrayLength=array_length,
-        arrayUpperBound=seq_bound if is_sequence else None,
+        is_array=array_length is not None or is_sequence,
+        array_length=array_length,
+        array_upper_bound=seq_bound if is_sequence else None,
     )
 
 
@@ -134,9 +134,9 @@ def _convert_constant(const: IDLConstant, typedefs: dict[str, IDLTypedef]) -> Me
     return MessageDefinitionField(
         type=t,
         name=const.name,
-        isConstant=True,
+        is_constant=True,
         value=const.value,
-        valueText=str(const.value),
+        value_text=str(const.value),
     )
 
 

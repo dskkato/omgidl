@@ -98,6 +98,9 @@ class Field:
     sequence_bound: Optional[int] = None
     string_upper_bound: Optional[int] = None
     annotations: dict[str, Any] = field(default_factory=dict)
+    is_constant: bool = False
+    value: Optional[Any] = None
+    default_value: Optional[Any] = None
 
 
 @dataclass
@@ -292,6 +295,7 @@ class _Transformer(Transformer):
             else:
                 string_upper_bound = type_[1]
                 type_ = type_[0]
+        default_value = annotations.pop("default", None)
         return Field(
             name=name,
             type=type_,
@@ -300,6 +304,7 @@ class _Transformer(Transformer):
             sequence_bound=sequence_bound,
             string_upper_bound=string_upper_bound,
             annotations=annotations,
+            default_value=default_value,
         )
 
     def const_string(self, items):
@@ -498,7 +503,7 @@ class _Transformer(Transformer):
 
 
 def parse_idl(source: str) -> List[Struct | Module | Constant | Enum | Typedef | Union]:
-    parser = Lark(IDL_GRAMMAR, start="start")
+    parser = Lark(IDL_GRAMMAR, start="start", parser="lalr")
     tree = parser.parse(source)
     transformer = _Transformer()
     result = transformer.transform(tree)
