@@ -5,6 +5,7 @@ from enum import IntEnum
 from typing import List, Dict, Any, Optional
 
 from omgidl_parser.parse import Struct, Field, Module, Union as IDLUnion
+from constants import UNION_DISCRIMINATOR_PROPERTY_KEY
 
 
 PRIMITIVE_SIZES: Dict[str, int] = {
@@ -385,8 +386,10 @@ class MessageWriter:
         return offset
 
     def _byte_size_union(self, union_def: IDLUnion, message: Dict[str, Any], offset: int) -> int:
-        disc_field = Field(name="_d", type=union_def.switch_type)
-        disc = message.get("_d")
+        disc_field = Field(
+            name=UNION_DISCRIMINATOR_PROPERTY_KEY, type=union_def.switch_type
+        )
+        disc = message.get(UNION_DISCRIMINATOR_PROPERTY_KEY)
         offset = self._field_size(disc_field, disc, offset)
         case_field = _union_case_field(union_def, disc)
         if case_field is None:
@@ -400,10 +403,14 @@ class MessageWriter:
     def _write_union(
         self, union_def: IDLUnion, message: Dict[str, Any], buffer: bytearray, offset: int
     ) -> int:
-        disc_field = Field(name="_d", type=union_def.switch_type)
-        disc = message.get("_d")
+        disc_field = Field(
+            name=UNION_DISCRIMINATOR_PROPERTY_KEY, type=union_def.switch_type
+        )
+        disc = message.get(UNION_DISCRIMINATOR_PROPERTY_KEY)
         if disc is None:
-            raise ValueError(f"Union {union_def.name} requires '_d' discriminator")
+            raise ValueError(
+                f"Union {union_def.name} requires '{UNION_DISCRIMINATOR_PROPERTY_KEY}' discriminator"
+            )
         offset = self._write_field(disc_field, disc, buffer, offset)
         case_field = _union_case_field(union_def, disc)
         if case_field is None:
@@ -451,7 +458,9 @@ def _find_union(defs: List[Struct | Module | IDLUnion], name: str) -> Optional[I
 
 def _union_case_field(union_def: IDLUnion, discriminator: Any) -> Optional[Field]:
     for case in union_def.cases:
-        if case.value == discriminator:
+        if hasattr(case, "value") and case.value == discriminator:
+            return case.field
+        if hasattr(case, "predicates") and discriminator in case.predicates:
             return case.field
     if union_def.default is not None:
         return union_def.default

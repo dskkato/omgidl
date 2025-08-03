@@ -1,0 +1,1 @@
+UNION_DISCRIMINATOR_PROPERTY_KEY = "$discriminator"
