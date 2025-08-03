@@ -11,6 +11,8 @@ from omgidl_parser.parse import (
     Module as IDLModule,
     Constant as IDLConstant,
     Enum as IDLEnum,
+    Typedef as IDLTypedef,
+    Union as IDLUnion,
 )
 
 
@@ -61,7 +63,10 @@ def parse_ros2idl(message_definition: str) -> List[MessageDefinition]:
     return message_defs
 
 
-def _process_definition(defn: IDLStruct | IDLModule | IDLConstant | IDLEnum, scope: List[str]) -> List[MessageDefinition]:
+def _process_definition(
+    defn: IDLStruct | IDLModule | IDLConstant | IDLEnum | IDLUnion | IDLTypedef,
+    scope: List[str],
+) -> List[MessageDefinition]:
     results: List[MessageDefinition] = []
     if isinstance(defn, IDLStruct):
         fields = [_convert_field(f) for f in defn.fields]
@@ -73,11 +78,18 @@ def _process_definition(defn: IDLStruct | IDLModule | IDLConstant | IDLEnum, sco
                 MessageDefinition(name="/".join([*scope, defn.name]), definitions=const_fields)
             )
         for sub in defn.definitions:
-            if isinstance(sub, (IDLModule, IDLStruct)):
+            if isinstance(sub, (IDLModule, IDLStruct, IDLUnion)):
                 results.extend(_process_definition(sub, [*scope, defn.name]))
     elif isinstance(defn, IDLConstant):
         results.append(
             MessageDefinition(name="/".join(scope), definitions=[_convert_constant(defn)])
+        )
+    elif isinstance(defn, IDLUnion):
+        fields = [MessageDefinitionField(type=defn.switch_type, name="_type")]
+        for case in defn.cases:
+            fields.append(_convert_field(case.field))
+        results.append(
+            MessageDefinition(name="/".join([*scope, defn.name]), definitions=fields)
         )
     return results
 

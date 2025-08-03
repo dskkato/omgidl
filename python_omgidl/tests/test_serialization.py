@@ -89,6 +89,35 @@ class TestMessageWriter(unittest.TestCase):
         self.assertEqual(written, expected)
         self.assertEqual(writer.calculate_byte_size(msg), len(expected))
 
+    def test_typedef(self) -> None:
+        schema = """
+        typedef int32 MyInt;
+        struct A { MyInt value; };
+        """
+        defs = parse_idl(schema)
+        writer = MessageWriter("A", defs)
+        msg = {"value": 42}
+        written = writer.write_message(msg)
+        expected = bytes([0, 1, 0, 0, 42, 0, 0, 0])
+        self.assertEqual(written, expected)
+        self.assertEqual(writer.calculate_byte_size(msg), len(expected))
+
+    def test_union(self) -> None:
+        schema = """
+        union Data switch (uint8) {
+          case 0: int32 i;
+          case 1: float32 f;
+        };
+        struct Wrapper { Data data; };
+        """
+        defs = parse_idl(schema)
+        writer = MessageWriter("Wrapper", defs)
+        msg = {"data": {"_type": 0, "i": 5}}
+        written = writer.write_message(msg)
+        expected = bytes([0, 1, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0])
+        self.assertEqual(written, expected)
+        self.assertEqual(writer.calculate_byte_size(msg), len(expected))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -46,6 +46,32 @@ class TestParseRos2idl(unittest.TestCase):
             ],
         )
 
+    def test_union(self):
+        schema = """
+        module pkg {
+          module msg {
+            union Foo switch (uint8) {
+              case 0: int32 i;
+              case 1: float32 f;
+            };
+          };
+        };
+        """
+        types = parse_ros2idl(schema)
+        self.assertEqual(
+            types,
+            [
+                MessageDefinition(
+                    name="pkg/msg/Foo",
+                    definitions=[
+                        MessageDefinitionField(type="uint8", name="_type"),
+                        MessageDefinitionField(type="int32", name="i"),
+                        MessageDefinitionField(type="float32", name="f"),
+                    ],
+                )
+            ],
+        )
+
     def test_builtin_time_normalization(self):
         schema = """
         module builtin_interfaces {
@@ -89,6 +115,28 @@ class TestParseRos2idl(unittest.TestCase):
                     name="pkg/msg/Seq",
                     definitions=[
                         MessageDefinitionField(type="int32", name="data", isArray=True)
+                    ],
+                )
+            ],
+        )
+
+    def test_typedef(self):
+        schema = """
+        module pkg {
+          module msg {
+            typedef int32 MyInt;
+            struct A { MyInt value; };
+          };
+        };
+        """
+        types = parse_ros2idl(schema)
+        self.assertEqual(
+            types,
+            [
+                MessageDefinition(
+                    name="pkg/msg/A",
+                    definitions=[
+                        MessageDefinitionField(type="int32", name="value")
                     ],
                 )
             ],
