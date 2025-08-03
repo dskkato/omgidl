@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import struct
+from array import array
 from typing import Any, Dict, List, Tuple
 
 from omgidl_parser.parse import Struct, Field, Module, Union as IDLUnion
@@ -67,8 +68,8 @@ class MessageReader:
                 offset += _padding(offset, 4)
                 length = struct.unpack_from(self._fmt_prefix + "I", view, offset)[0]
                 offset += 4
-                arr: List[Any] = []
                 if t in ("string", "wstring"):
+                    arr: List[Any] = []
                     for _ in range(length):
                         offset += _padding(offset, 4)
                         slen = struct.unpack_from(self._fmt_prefix + "I", view, offset)[0]
@@ -86,6 +87,7 @@ class MessageReader:
                     size = _primitive_size(t)
                     fmt = self._fmt_prefix + PRIMITIVE_FORMATS[t]
                     offset += _padding(offset, size)
+                    arr = array(PRIMITIVE_FORMATS[t])
                     for _ in range(length):
                         val = struct.unpack_from(fmt, view, offset)[0]
                         offset += size
@@ -93,6 +95,7 @@ class MessageReader:
                             val = bool(val)
                         arr.append(val)
                 else:
+                    arr: List[Any] = []
                     struct_def = _find_struct(self.definitions, t)
                     if struct_def is not None:
                         for _ in range(length):
@@ -171,7 +174,7 @@ class MessageReader:
         elif t in PRIMITIVE_SIZES:
             size = _primitive_size(t)
             fmt = self._fmt_prefix + PRIMITIVE_FORMATS[t]
-            arr: List[Any] = []
+            arr = array(PRIMITIVE_FORMATS[t])
             offset += _padding(offset, size)
             for _ in range(length):
                 val = struct.unpack_from(fmt, view, offset)[0]

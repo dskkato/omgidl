@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import struct
+from array import array
 from enum import IntEnum
 from typing import List, Dict, Any, Optional
 
@@ -34,6 +35,8 @@ PRIMITIVE_FORMATS: Dict[str, str] = {
     "float32": "f",
     "float64": "d",
 }
+
+_SEQUENCE_TYPES = (list, tuple, array, memoryview)
 
 
 class EncapsulationKind(IntEnum):
@@ -129,9 +132,9 @@ class MessageWriter:
         if field.array_lengths:
             return self._byte_size_array(field, value, field.array_lengths, offset)
         # Single field or dynamic sequence
-        if field.is_sequence or isinstance(value, (list, tuple)):
+        if field.is_sequence or isinstance(value, _SEQUENCE_TYPES):
             # Variable-length sequence
-            arr = value if isinstance(value, (list, tuple)) else []
+            arr = value if isinstance(value, _SEQUENCE_TYPES) else []
             length = len(arr)
             if field.sequence_bound is not None and length > field.sequence_bound:
                 raise ValueError(
@@ -151,6 +154,10 @@ class MessageWriter:
                     offset += 4 + len(encoded) + (1 if t == "string" else 2)
             elif t in PRIMITIVE_SIZES:
                 size = _primitive_size(t)
+                if isinstance(arr, memoryview) and arr.itemsize != size:
+                    raise ValueError(
+                        f"Field '{field.name}' sequence element size {arr.itemsize} does not match primitive size {size}"
+                    )
                 offset += _padding(offset, size)
                 offset += size * length
             else:
@@ -197,7 +204,7 @@ class MessageWriter:
         self, field: Field, value: Any, lengths: List[int], offset: int
     ) -> int:
         t = field.type
-        arr = value if isinstance(value, (list, tuple)) else []
+        arr = value if isinstance(value, _SEQUENCE_TYPES) else []
         length = lengths[0]
         if len(lengths) > 1:
             for i in range(length):
@@ -216,6 +223,10 @@ class MessageWriter:
                 offset += 4 + len(encoded) + (1 if t == "string" else 2)
         elif t in PRIMITIVE_SIZES:
             size = _primitive_size(t)
+            if isinstance(arr, memoryview) and arr.itemsize != size:
+                raise ValueError(
+                    f"Field '{field.name}' array element size {arr.itemsize} does not match primitive size {size}"
+                )
             offset += _padding(offset, size)
             offset += size * length
         else:
@@ -248,9 +259,9 @@ class MessageWriter:
         if field.array_lengths:
             return self._write_array(field, value, buffer, offset, field.array_lengths)
         else:
-            if field.is_sequence or isinstance(value, (list, tuple)):
+            if field.is_sequence or isinstance(value, _SEQUENCE_TYPES):
                 # Variable-length sequence
-                arr = value if isinstance(value, (list, tuple)) else []
+                arr = value if isinstance(value, _SEQUENCE_TYPES) else []
                 length = len(arr)
                 if field.sequence_bound is not None and length > field.sequence_bound:
                     raise ValueError(
@@ -277,6 +288,10 @@ class MessageWriter:
                         offset += 1 if t == "string" else 2
                 elif t in PRIMITIVE_SIZES:
                     size = _primitive_size(t)
+                    if isinstance(arr, memoryview) and arr.itemsize != size:
+                        raise ValueError(
+                            f"Field '{field.name}' sequence element size {arr.itemsize} does not match primitive size {size}"
+                        )
                     fmt = self._fmt_prefix + PRIMITIVE_FORMATS[t]
                     offset += _padding(offset, size)
                     for v in arr:
@@ -336,7 +351,7 @@ class MessageWriter:
         self, field: Field, value: Any, buffer: bytearray, offset: int, lengths: List[int]
     ) -> int:
         t = field.type
-        arr = value if isinstance(value, (list, tuple)) else []
+        arr = value if isinstance(value, _SEQUENCE_TYPES) else []
         length = lengths[0]
         if len(lengths) > 1:
             for i in range(length):
@@ -363,6 +378,10 @@ class MessageWriter:
                 offset += 1 if t == "string" else 2
         elif t in PRIMITIVE_SIZES:
             size = _primitive_size(t)
+            if isinstance(arr, memoryview) and arr.itemsize != size:
+                raise ValueError(
+                    f"Field '{field.name}' array element size {arr.itemsize} does not match primitive size {size}"
+                )
             fmt = self._fmt_prefix + PRIMITIVE_FORMATS[t]
             offset += _padding(offset, size)
             for i in range(length):
