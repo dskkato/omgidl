@@ -210,6 +210,42 @@ class TestParseRos2idl(unittest.TestCase):
             ],
         )
 
+    def test_scoped_enum_reference(self):
+        schema = """
+        module colors {
+          enum Palette {
+            RED,
+            GREEN
+          };
+        };
+        struct Pixel { colors::Palette tone; };
+        """
+        types = parse_ros2idl(schema)
+        self.assertEqual(
+            types,
+            [
+                MessageDefinition(
+                    name="colors/Palette",
+                    definitions=[
+                        MessageDefinitionField(
+                            type="uint32", name="RED", isConstant=True, value=0, valueText="0"
+                        ),
+                        MessageDefinitionField(
+                            type="uint32", name="GREEN", isConstant=True, value=1, valueText="1"
+                        ),
+                    ],
+                ),
+                MessageDefinition(
+                    name="Pixel",
+                    definitions=[
+                        MessageDefinitionField(
+                            type="uint32", name="tone", enumType="colors/Palette"
+                        )
+                    ],
+                ),
+            ],
+        )
+
     def test_union_definition_not_supported(self):
         schema = """
         union MyUnion switch (uint8) {

@@ -57,6 +57,8 @@ def parse_ros2idl(message_definition: str) -> List[MessageDefinition]:
             msg.name = _normalize_name(msg.name)
         for field in msg.definitions:
             field.type = _normalize_name(field.type)
+            if field.enumType:
+                field.enumType = _normalize_name(field.enumType)
 
         if msg.name in ("builtin_interfaces/msg/Time", "builtin_interfaces/msg/Duration"):
             for field in msg.definitions:
@@ -145,7 +147,7 @@ def _convert_field(
         if ref is not None:
             t = scoped
     if isinstance(ref, IDLEnum):
-        enum_type = t
+        enum_type = _normalize_name(t)
         t = "uint32"
     elif isinstance(ref, (IDLStruct, IDLUnion)):
         is_complex = True
