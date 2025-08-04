@@ -388,7 +388,8 @@ class MessageWriter:
                     length = len(arr)
                 if field.sequence_bound is not None and length > field.sequence_bound:
                     raise ValueError(
-                        f"Field '{field.name}' sequence length {length} exceeds bound {field.sequence_bound}"
+                        f"Field '{field.name}' sequence length {length} exceeds "
+                        f"bound {field.sequence_bound}"
                     )
                 offset += _padding(offset, 4)
                 struct.pack_into(self._fmt_prefix + "I", buffer, offset, length)

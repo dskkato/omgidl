@@ -17,5 +17,5 @@ jobs:
       - run: pip install .[dev]
       - run: black --check python_omgidl
       - run: isort --check-only python_omgidl
-      - run: flake8 python_omgidl
+      - run: flake8p python_omgidl
       - run: pytest
