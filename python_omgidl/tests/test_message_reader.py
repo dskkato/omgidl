@@ -177,9 +177,8 @@ class TestMessageReader(unittest.TestCase):
         decoded = reader.read_message(buf)
         self.assertEqual(decoded, msg)
 
-    def test_appendable_delimiter_roundtrip(self) -> None:
+    def test_default_delimiter_roundtrip(self) -> None:
         schema = """
-        @appendable
         struct A {
             int32 num;
         };

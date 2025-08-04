@@ -200,7 +200,8 @@ def _get_header_needs(definition: Struct | IDLUnion) -> tuple[bool, bool]:
         return (True, True)
     if "appendable" in annotations:
         return (True, False)
-    return (False, False)
+    # Default extensibility is appendable when unspecified
+    return (True, False)
 
 
 def _find_struct(defs: List[Struct | Module], name: str) -> Optional[Struct]:
