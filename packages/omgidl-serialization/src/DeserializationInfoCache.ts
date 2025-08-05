@@ -4,6 +4,7 @@ import {
   IDLMessageDefinitionField,
   IDLStructDefinition,
   IDLUnionDefinition,
+  IDLModuleDefinition,
 } from "@foxglove/omgidl-parser";
 
 import { UNION_DISCRIMINATOR_PROPERTY_KEY } from "./constants";
@@ -57,24 +58,32 @@ export type PrimitiveArrayDeserializationInfo = {
   deserialize: ArrayDeserializer;
 };
 
-export type StructDeserializationInfo = HeaderOptions & {
-  type: "struct";
-  fields: FieldDeserializationInfo[];
-  definition: IDLStructDefinition;
+export class StructDeserializationInfo implements HeaderOptions {
   /** optional allows for defaultValues to be calculated lazily */
-  defaultValue?: Record<string, unknown>;
-};
+  public defaultValue?: Record<string, unknown>;
+  constructor(
+    public definition: IDLStructDefinition,
+    public fields: FieldDeserializationInfo[],
+    public usesDelimiterHeader: boolean,
+    public usesMemberHeader: boolean,
+  ) {}
+}
 
-export type UnionDeserializationInfo = HeaderOptions & {
-  type: "union";
-  switchTypeDeser: Deserializer;
-  switchTypeLength: number;
-  definition: IDLUnionDefinition;
+export class UnionDeserializationInfo implements HeaderOptions {
   /** optional allows for defaultValues to be calculated lazily */
-  defaultValue?: Record<string, unknown>;
-};
+  public defaultValue?: Record<string, unknown>;
+  constructor(
+    public definition: IDLUnionDefinition,
+    public switchTypeDeser: Deserializer,
+    public switchTypeLength: number,
+    public usesDelimiterHeader: boolean,
+    public usesMemberHeader: boolean,
+  ) {}
+}
 
-export type ComplexDeserializationInfo = StructDeserializationInfo | UnionDeserializationInfo;
+export type ComplexDeserializationInfo =
+  | StructDeserializationInfo
+  | UnionDeserializationInfo;
 export type PrimitiveTypeDeserInfo =
   | PrimitiveDeserializationInfo
   | PrimitiveArrayDeserializationInfo;
@@ -121,7 +130,7 @@ export class DeserializationInfoCache {
   public getComplexDeserializationInfo(
     definition: IDLMessageDefinition,
   ): ComplexDeserializationInfo {
-    if (definition.aggregatedKind === "module") {
+    if (definition instanceof IDLModuleDefinition) {
       throw new Error(`Modules are not used in serialization`);
     }
 
@@ -130,7 +139,7 @@ export class DeserializationInfoCache {
       return cached;
     }
 
-    if (definition.aggregatedKind === "union") {
+    if (definition instanceof IDLUnionDefinition) {
       const switchTypeDeser = PRIMITIVE_DESERIALIZERS.get(definition.switchType);
       const switchTypeLength = typeToByteLength(definition.switchType);
 
@@ -142,30 +151,33 @@ export class DeserializationInfoCache {
         );
       }
 
-      const deserInfo: UnionDeserializationInfo = {
-        type: "union",
-        ...getHeaderNeeds(definition),
+      const { usesDelimiterHeader, usesMemberHeader } = getHeaderNeeds(definition);
+      const deserInfo = new UnionDeserializationInfo(
         definition,
         switchTypeDeser,
         switchTypeLength,
-      };
+        usesDelimiterHeader,
+        usesMemberHeader,
+      );
 
       this.#complexDeserializationInfo.set(definition.name ?? "", deserInfo);
       return deserInfo;
     }
 
-    const deserInfo: StructDeserializationInfo = {
-      type: "struct",
-      ...getHeaderNeeds(definition),
-      definition,
-      fields: definition.definitions.reduce<FieldDeserializationInfo[]>(
-        (fieldsAccum, fieldDef) =>
-          fieldDef.isConstant === true
-            ? fieldsAccum
-            : fieldsAccum.concat(this.buildFieldDeserInfo(fieldDef)),
-        [],
-      ),
-    };
+    const { usesDelimiterHeader, usesMemberHeader } = getHeaderNeeds(definition);
+    const fields = definition.definitions.reduce<FieldDeserializationInfo[]>(
+      (fieldsAccum, fieldDef) =>
+        fieldDef.isConstant === true
+          ? fieldsAccum
+          : fieldsAccum.concat(this.buildFieldDeserInfo(fieldDef)),
+      [],
+    );
+    const deserInfo = new StructDeserializationInfo(
+      definition as IDLStructDefinition,
+      fields,
+      usesDelimiterHeader,
+      usesMemberHeader,
+    );
 
     this.#complexDeserializationInfo.set(definition.name ?? "", deserInfo);
     return deserInfo;
@@ -290,7 +302,7 @@ export class DeserializationInfoCache {
     }
     deserInfo.defaultValue = {};
     const defaultMessage = deserInfo.defaultValue;
-    if (deserInfo.type === "union") {
+    if (deserInfo instanceof UnionDeserializationInfo) {
       const { definition: unionDef } = deserInfo;
       const { switchType } = unionDef;
 
@@ -315,17 +327,14 @@ export class DeserializationInfoCache {
       }
       const defaultCaseDeserInfo = this.buildFieldDeserInfo(defaultCase);
       defaultMessage[defaultCaseDeserInfo.name] = this.getFieldDefault(defaultCaseDeserInfo);
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    } else if (deserInfo.type === "struct") {
+    } else if (deserInfo instanceof StructDeserializationInfo) {
       for (const field of deserInfo.fields) {
         if (!field.isOptional) {
           defaultMessage[field.name] = this.getFieldDefault(field);
         }
       }
-    }
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    if (defaultMessage == undefined) {
-      throw new Error(`Unrecognized complex type ${deserInfo.type as string}`);
+    } else {
+      throw new Error(`Unrecognized complex type`);
     }
     return defaultMessage;
   }

@@ -19,27 +19,26 @@ class Case:
 
 
 @dataclass
-class IDLStructDefinition:
+class IDLAggregatedDefinition:
     name: str
+
+
+@dataclass
+class IDLStructDefinition(IDLAggregatedDefinition):
     definitions: List[MessageDefinitionField]
-    aggregatedKind: str = "struct"
     annotations: Optional[Dict[str, Any]] = None
 
 
 @dataclass
-class IDLModuleDefinition:
-    name: str
+class IDLModuleDefinition(IDLAggregatedDefinition):
     definitions: List[MessageDefinitionField]
-    aggregatedKind: str = "module"
     annotations: Optional[Dict[str, Any]] = None
 
 
 @dataclass
-class IDLUnionDefinition:
-    name: str
+class IDLUnionDefinition(IDLAggregatedDefinition):
     switchType: str
     cases: List[Case]
-    aggregatedKind: str = "union"
     defaultCase: Optional[MessageDefinitionField] = None
     annotations: Optional[Dict[str, Any]] = None
 

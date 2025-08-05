@@ -65,7 +65,7 @@ export class MessageReader<T = unknown> {
     }
 
     const msg =
-      deserInfo.type === "struct"
+      deserInfo instanceof StructDeserializationInfo
         ? this.readStructType(deserInfo, reader, options)
         : this.readUnionType(deserInfo, reader, options);
 
@@ -217,7 +217,7 @@ export class MessageReader<T = unknown> {
         emHeaderSizeBytes = useEmHeaderAsLength(lengthCode) ? objectSizeBytes : undefined;
       }
 
-      if (field.typeDeserInfo.type === "struct" || field.typeDeserInfo.type === "union") {
+      if (field.isComplex === true) {
         if (field.isArray === true) {
           // sequences and arrays have dHeaders only when emHeaders were not already written
           if (headerOptions.readDelimiterHeader && !readEmHeader) {

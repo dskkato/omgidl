@@ -3,7 +3,12 @@ import { StructMemberIDLNode } from "./StructMemberIDLNode";
 import { AnyIDLNode, IEnumIDLNode, ITypedefIDLNode, IUnionIDLNode } from "./interfaces";
 import { UnionASTNode } from "../astTypes";
 import { INTEGER_TYPES, SIMPLE_TYPES, normalizeType } from "../primitiveTypes";
-import { Case, IDLMessageDefinition, IDLMessageDefinitionField } from "../types";
+import {
+  Case,
+  IDLMessageDefinition,
+  IDLMessageDefinitionField,
+  IDLUnionDefinition,
+} from "../types";
 
 export class UnionIDLNode extends IDLNode<UnionASTNode> implements IUnionIDLNode {
   private switchTypeNeedsResolution = false;
@@ -96,14 +101,13 @@ export class UnionIDLNode extends IDLNode<UnionASTNode> implements IUnionIDLNode
 
   toIDLMessageDefinition(): IDLMessageDefinition {
     const annotations = this.annotations;
-    return {
-      name: this.scopedIdentifier,
-      switchType: normalizeType(this.switchType),
-      cases: this.cases,
-      aggregatedKind: "union",
-      ...(this.astNode.defaultCase ? { defaultCase: this.defaultCase } : undefined),
-      ...(annotations ? { annotations } : undefined),
-    };
+    return new IDLUnionDefinition(
+      this.scopedIdentifier,
+      normalizeType(this.switchType),
+      this.cases,
+      this.astNode.defaultCase ? this.defaultCase : undefined,
+      annotations,
+    );
   }
 }
 

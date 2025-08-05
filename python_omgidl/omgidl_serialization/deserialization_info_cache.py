@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import copy
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 from omgidl_parser.parse import Field, Module, Struct
 from omgidl_parser.parse import Union as IDLUnion
@@ -47,25 +47,21 @@ class FieldDeserializationInfo:
 
 
 @dataclass
-class StructDeserializationInfo:
-    type: str
-    fields: List[FieldDeserializationInfo]
-    definition: Struct
+class ComplexDeserializationInfo:
+    definition: Struct | IDLUnion
     uses_delimiter_header: bool
     uses_member_header: bool
+
+
+@dataclass
+class StructDeserializationInfo(ComplexDeserializationInfo):
+    fields: List[FieldDeserializationInfo]
     default_value: Optional[Dict[str, Any]] = None
 
 
 @dataclass
-class UnionDeserializationInfo:
-    type: str
-    definition: IDLUnion
-    uses_delimiter_header: bool
-    uses_member_header: bool
+class UnionDeserializationInfo(ComplexDeserializationInfo):
     default_value: Optional[Dict[str, Any]] = None
-
-
-ComplexDeserializationInfo = Union[StructDeserializationInfo, UnionDeserializationInfo]
 
 
 class DeserializationInfoCache:
@@ -85,7 +81,6 @@ class DeserializationInfoCache:
         uses_delim, uses_member = _get_header_needs(definition)
         if isinstance(definition, IDLUnion):
             info: ComplexDeserializationInfo = UnionDeserializationInfo(
-                type="union",
                 definition=definition,
                 uses_delimiter_header=uses_delim,
                 uses_member_header=uses_member,
@@ -95,9 +90,8 @@ class DeserializationInfoCache:
                 self.build_field_info(f, i + 1) for i, f in enumerate(definition.fields)
             ]
             info = StructDeserializationInfo(
-                type="struct",
-                fields=fields,
                 definition=definition,
+                fields=fields,
                 uses_delimiter_header=uses_delim,
                 uses_member_header=uses_member,
             )

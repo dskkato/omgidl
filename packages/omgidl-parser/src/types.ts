@@ -1,44 +1,70 @@
-import { MessageDefinition, MessageDefinitionField } from "@foxglove/message-definition";
+import { MessageDefinitionField } from "@foxglove/message-definition";
 
 import { AnyAnnotation } from "./astTypes";
 
 /** Final resolved MessageDefinition types */
 
 /** Higher-level resolved definitions (struct, modules)*/
-export type IDLMessageDefinition = IDLStructDefinition | IDLModuleDefinition | IDLUnionDefinition;
+export type IDLMessageDefinition =
+  | IDLStructDefinition
+  | IDLModuleDefinition
+  | IDLUnionDefinition;
 
-export type IDLModuleDefinition = IDLAggregatedDefinition & {
-  aggregatedKind: "module";
+export class IDLAggregatedDefinition {
+  public name: string;
+  public declare annotations?: Record<string, AnyAnnotation>;
+  constructor(name: string, annotations?: Record<string, AnyAnnotation>) {
+    this.name = name;
+    if (annotations !== undefined) {
+      this.annotations = annotations;
+    }
+  }
+}
+
+export class IDLModuleDefinition extends IDLAggregatedDefinition {
   /** Should only contain constants directly contained within module.
    * Does not include constants contained within submodules any other definitions contained within the module.
    */
-  definitions: IDLMessageDefinitionField[];
-};
+  constructor(
+    name: string,
+    public definitions: IDLMessageDefinitionField[],
+    annotations?: Record<string, AnyAnnotation>,
+  ) {
+    super(name, annotations);
+  }
+}
 
-/**  */
-export type IDLAggregatedDefinition = Omit<MessageDefinition, "definitions"> & {
-  /** Annotations from schema. Only default annotations are resolved currently */
-  annotations?: Record<string, AnyAnnotation>;
-  /** Denotes whether the MessageDefinition is a `struct`, `union` or `module`
-   * These are important to denote for serialization. Specifically for when a struct-member
-   * references a complex type (struct or union).
-   */
-  aggregatedKind: "struct" | "union" | "module";
-};
+export class IDLStructDefinition extends IDLAggregatedDefinition {
+  constructor(
+    name: string,
+    public definitions: IDLMessageDefinitionField[],
+    annotations?: Record<string, AnyAnnotation>,
+  ) {
+    super(name, annotations);
+  }
+}
 
-export type IDLStructDefinition = IDLAggregatedDefinition & {
-  aggregatedKind: "struct";
-  definitions: IDLMessageDefinitionField[];
-};
-
-export type IDLUnionDefinition = IDLAggregatedDefinition & {
-  aggregatedKind: "union";
+export class IDLUnionDefinition extends IDLAggregatedDefinition {
+  public switchType: string;
+  public cases: Case[];
+  public declare defaultCase?: IDLMessageDefinitionField;
   /** Type to read that determines what case to use. Must be numeric or boolean */
-  switchType: string;
-  cases: Case[];
-  /** Resolved default type specification */
-  defaultCase?: IDLMessageDefinitionField;
-};
+  constructor(
+    name: string,
+    switchType: string,
+    cases: Case[],
+    /** Resolved default type specification */
+    defaultCase?: IDLMessageDefinitionField,
+    annotations?: Record<string, AnyAnnotation>,
+  ) {
+    super(name, annotations);
+    this.switchType = switchType;
+    this.cases = cases;
+    if (defaultCase !== undefined) {
+      this.defaultCase = defaultCase;
+    }
+  }
+}
 
 /** Case with resolved predicates and type definition */
 export type Case = {

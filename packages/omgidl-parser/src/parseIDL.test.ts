@@ -11,7 +11,6 @@ describe("omgidl parser tests", () => {
     expect(types).toEqual([
       {
         name: "A",
-        aggregatedKind: "struct",
         definitions: [
           {
             isComplex: false,
@@ -36,7 +35,6 @@ describe("omgidl parser tests", () => {
     expect(types).toEqual([
       {
         name: "B",
-        aggregatedKind: "struct",
         definitions: [
           {
             isComplex: true,
@@ -47,7 +45,6 @@ describe("omgidl parser tests", () => {
       },
       {
         name: "A",
-        aggregatedKind: "struct",
         definitions: [
           {
             isComplex: false,
@@ -72,7 +69,6 @@ describe("omgidl parser tests", () => {
     expect(types).toEqual([
       {
         name: "A",
-        aggregatedKind: "struct",
         definitions: [
           {
             isComplex: false,
@@ -117,7 +113,6 @@ describe("omgidl parser tests", () => {
     expect(types).toEqual([
       {
         name: "rosidl_parser::action::MyAction_Goal",
-        aggregatedKind: "struct",
         definitions: [
           {
             isComplex: false,
@@ -145,7 +140,6 @@ describe("omgidl parser tests", () => {
     );
     expect(types).toEqual([
       {
-        aggregatedKind: "module",
         definitions: [
           {
             isConstant: true,
@@ -159,7 +153,6 @@ describe("omgidl parser tests", () => {
         name: "rosidl_parser::action::MyAction_Goal_Constants",
       },
       {
-        aggregatedKind: "struct",
         definitions: [
           {
             isComplex: false,
@@ -187,7 +180,6 @@ describe("omgidl parser tests", () => {
     expect(types).toEqual([
       {
         name: "msg::PointCollection",
-        aggregatedKind: "struct",
         definitions: [
           {
             name: "points",
@@ -200,7 +192,6 @@ describe("omgidl parser tests", () => {
       },
       {
         name: "Point",
-        aggregatedKind: "struct",
         definitions: [
           {
             name: "x",
@@ -228,7 +219,6 @@ describe("omgidl parser tests", () => {
     expect(types).toEqual([
       {
         name: "Point",
-        aggregatedKind: "struct",
         definitions: [
           {
             name: "loc",
@@ -255,7 +245,6 @@ describe("omgidl parser tests", () => {
     expect(types).toEqual([
       {
         name: "msg::Point",
-        aggregatedKind: "struct",
         definitions: [
           {
             name: "loc",
@@ -304,7 +293,6 @@ describe("omgidl parser tests", () => {
     expect(types).toEqual([
       {
         name: "layer1::layer2::layer3::Point",
-        aggregatedKind: "struct",
         definitions: [
           {
             name: "layer1L1",
@@ -391,7 +379,6 @@ describe("omgidl parser tests", () => {
     );
     expect(types).toEqual([
       {
-        aggregatedKind: "struct",
         definitions: [
           {
             isComplex: false,
@@ -450,7 +437,6 @@ describe("omgidl parser tests", () => {
     expect(types).toEqual([
       {
         name: "rosidl_parser::action::MyAction_Goal_Constants",
-        aggregatedKind: "module",
         definitions: [
           {
             isConstant: true,
@@ -464,7 +450,6 @@ describe("omgidl parser tests", () => {
       },
       {
         name: "rosidl_parser::action::MyAction_Goal",
-        aggregatedKind: "struct",
         definitions: [
           {
             type: "int32",
@@ -475,7 +460,6 @@ describe("omgidl parser tests", () => {
       },
       {
         name: "rosidl_parser::action::MyAction_Result_Constants",
-        aggregatedKind: "module",
         definitions: [
           {
             isConstant: true,
@@ -489,7 +473,6 @@ describe("omgidl parser tests", () => {
       },
       {
         name: "rosidl_parser::action::MyAction_Result",
-        aggregatedKind: "struct",
         definitions: [
           {
             type: "uint32",
@@ -500,7 +483,6 @@ describe("omgidl parser tests", () => {
       },
       {
         name: "rosidl_parser::action::MyAction_Feedback_Constants",
-        aggregatedKind: "module",
         definitions: [
           {
             isConstant: true,
@@ -514,7 +496,6 @@ describe("omgidl parser tests", () => {
       },
       {
         name: "rosidl_parser::action::MyAction_Feedback",
-        aggregatedKind: "struct",
         definitions: [
           {
             type: "float32",
@@ -547,7 +528,6 @@ describe("omgidl parser tests", () => {
     // same as above
     expect(types).toEqual([
       {
-        aggregatedKind: "module",
         definitions: [
           {
             isConstant: true,
@@ -561,7 +541,6 @@ describe("omgidl parser tests", () => {
         name: "rosidl_parser::action::MyAction_Goal_Constants",
       },
       {
-        aggregatedKind: "struct",
         definitions: [
           {
             isComplex: false,
@@ -590,7 +569,6 @@ module rosidl_parser {
     );
     expect(types).toEqual([
       {
-        aggregatedKind: "module",
         definitions: [
           {
             isConstant: true,
@@ -663,7 +641,6 @@ module rosidl_parser {
     expect(types).toEqual([
       {
         name: "rosidl_parser::msg::MyMessage",
-        aggregatedKind: "struct",
         definitions: [
           {
             type: "uint16",
@@ -794,7 +771,6 @@ module rosidl_parser {
     expect(types).toEqual([
       {
         name: "rosidl_parser::msg::MyMessage",
-        aggregatedKind: "struct",
         definitions: [
           {
             type: "string",
@@ -864,7 +840,6 @@ module rosidl_parser {
       },
       {
         name: "",
-        aggregatedKind: "module",
         definitions: [
           {
             name: "UNSIGNED_LONG_CONSTANT",
@@ -922,7 +897,6 @@ module rosidl_parser {
             },
           },
         },
-        aggregatedKind: "struct",
         definitions: [
           {
             defaultValue: 123,
@@ -1033,7 +1007,6 @@ module geometry {
     expect(types).toEqual([
       {
         name: "rosidl_parser::msg::MyMessage",
-        aggregatedKind: "struct",
         definitions: [
           {
             type: "geometry::msg::Point",
@@ -1058,7 +1031,6 @@ module geometry {
       },
       {
         name: "geometry::msg::Point",
-        aggregatedKind: "struct",
         definitions: [
           {
             name: "x",
@@ -1108,7 +1080,6 @@ module geometry {
     );
     expect(types).toEqual([
       {
-        aggregatedKind: "struct",
         definitions: [
           {
             annotations: {
@@ -1327,7 +1298,6 @@ module rosidl_parser {
     );
     expect(types).toEqual([
       {
-        aggregatedKind: "module",
         definitions: [
           {
             isConstant: true,
@@ -1391,7 +1361,6 @@ module rosidl_parser {
     const types = parse(msgDef);
     expect(types).toEqual([
       {
-        aggregatedKind: "module",
         definitions: [
           {
             isConstant: true,
@@ -1406,7 +1375,6 @@ module rosidl_parser {
         name: "action::MyAction_Goal_Constants",
       },
       {
-        aggregatedKind: "struct",
         definitions: [
           {
             isComplex: false,
@@ -1430,7 +1398,6 @@ module rosidl_parser {
     const types = parse(msgDef);
     expect(types).toEqual([
       {
-        aggregatedKind: "struct",
         definitions: [
           {
             defaultValue: 5,
@@ -1479,7 +1446,6 @@ module rosidl_parser {
     expect(types).toEqual([
       {
         name: "COLORS",
-        aggregatedKind: "module",
         definitions: [
           {
             name: "RED",
@@ -1521,7 +1487,6 @@ module rosidl_parser {
     expect(types).toEqual([
       {
         name: "COLORS",
-        aggregatedKind: "module",
         definitions: [
           {
             name: "RED",
@@ -1566,7 +1531,6 @@ module rosidl_parser {
     expect(types).toEqual([
       {
         name: "COLORS",
-        aggregatedKind: "module",
         definitions: [
           {
             name: "RED",
@@ -1628,7 +1592,6 @@ module rosidl_parser {
     expect(types).toEqual([
       {
         name: "Scene::COLORS",
-        aggregatedKind: "module",
         definitions: [
           {
             name: "RED",
@@ -1671,7 +1634,6 @@ module rosidl_parser {
     expect(types).toEqual([
       {
         name: "COLORS",
-        aggregatedKind: "module",
         definitions: [
           {
             name: "RED",
@@ -1698,7 +1660,6 @@ module rosidl_parser {
       },
       {
         name: "Line",
-        aggregatedKind: "struct",
         definitions: [
           {
             name: "color",
@@ -1735,7 +1696,6 @@ module rosidl_parser {
     expect(types).toEqual([
       {
         name: "Test::COLORS",
-        aggregatedKind: "module",
         definitions: [
           {
             name: "RED",
@@ -1762,7 +1722,6 @@ module rosidl_parser {
       },
       {
         name: "Scene::DefaultColors",
-        aggregatedKind: "module",
         definitions: [
           {
             isConstant: true,
@@ -1776,7 +1735,6 @@ module rosidl_parser {
       },
       {
         name: "Scene::Line",
-        aggregatedKind: "struct",
         definitions: [
           {
             name: "color",
@@ -1812,7 +1770,6 @@ module rosidl_parser {
     const types = parse(msgDef);
     expect(types).toEqual([
       {
-        aggregatedKind: "struct",
         definitions: [
           {
             name: "byteWithSameDefault",
@@ -1860,7 +1817,6 @@ module rosidl_parser {
     const types = parse(msgDef);
     expect(types).toEqual([
       {
-        aggregatedKind: "struct",
         definitions: [
           {
             name: "gridLine",
@@ -1887,7 +1843,6 @@ module rosidl_parser {
     expect(types).toEqual([
       {
         name: "GridBoard",
-        aggregatedKind: "struct",
         definitions: [
           {
             name: "grid",
@@ -1900,7 +1855,6 @@ module rosidl_parser {
       },
       {
         name: "",
-        aggregatedKind: "module",
         definitions: [
           {
             name: "rows",
@@ -1935,7 +1889,6 @@ module rosidl_parser {
     expect(types).toEqual([
       {
         name: "ArrStruct",
-        aggregatedKind: "struct",
         definitions: [
           {
             arrayUpperBound: 10,
@@ -1972,7 +1925,6 @@ module rosidl_parser {
     expect(ast).toEqual([
       {
         name: "ColorMode",
-        aggregatedKind: "module",
         definitions: [
           { name: "GRAY", value: 0, type: "uint32", isConstant: true, isComplex: false },
           { name: "RGBA", value: 1, type: "uint32", isConstant: true, isComplex: false },
@@ -1981,7 +1933,6 @@ module rosidl_parser {
       },
       {
         name: "Limited::Color",
-        aggregatedKind: "union",
         switchType: "uint32",
         cases: [
           {
@@ -2013,7 +1964,6 @@ module rosidl_parser {
       },
       {
         name: "ColorSettings",
-        aggregatedKind: "struct",
         definitions: [
           {
             name: "chosenColor",
@@ -2045,7 +1995,6 @@ module rosidl_parser {
     expect(ast).toEqual([
       {
         name: "ColorMode",
-        aggregatedKind: "module",
         definitions: [
           { name: "GRAY", value: 0, type: "uint32", isConstant: true, isComplex: false },
           { name: "RGBA", value: 1, type: "uint32", isConstant: true, isComplex: false },
@@ -2054,7 +2003,6 @@ module rosidl_parser {
       },
       {
         name: "Color",
-        aggregatedKind: "union",
         switchType: "uint32",
         cases: [
           {
@@ -2086,7 +2034,6 @@ module rosidl_parser {
       },
       {
         name: "ColorSettings",
-        aggregatedKind: "struct",
         definitions: [
           {
             name: "chosenColor",
@@ -2116,7 +2063,6 @@ module rosidl_parser {
       {
         name: "Color",
         switchType: "bool",
-        aggregatedKind: "union",
         cases: [
           {
             predicates: [true],
@@ -2140,7 +2086,6 @@ module rosidl_parser {
       },
       {
         name: "ColorSettings",
-        aggregatedKind: "struct",
         definitions: [
           {
             isComplex: true,
@@ -2172,7 +2117,6 @@ module rosidl_parser {
       {
         name: "MyUnion",
         switchType: "int32",
-        aggregatedKind: "union",
         cases: [
           {
             predicates: [1],
@@ -2207,7 +2151,6 @@ module rosidl_parser {
       },
       {
         name: "Foo",
-        aggregatedKind: "struct",
         definitions: [
           {
             isComplex: true,
@@ -2243,7 +2186,6 @@ module rosidl_parser {
       {
         name: "MyUnion",
         switchType: "int32",
-        aggregatedKind: "union",
         cases: [
           {
             predicates: [1],
@@ -2306,7 +2248,6 @@ module rosidl_parser {
       },
       {
         name: "Foo",
-        aggregatedKind: "struct",
         definitions: [
           {
             isComplex: true,
@@ -2340,7 +2281,6 @@ module rosidl_parser {
       {
         name: "MyTypes::MyUnion",
         switchType: "int32",
-        aggregatedKind: "union",
         cases: [
           {
             predicates: [1],
@@ -2375,7 +2315,6 @@ module rosidl_parser {
       },
       {
         name: "Foo",
-        aggregatedKind: "struct",
         definitions: [
           {
             isComplex: true,
@@ -2407,7 +2346,6 @@ module rosidl_parser {
       {
         name: "MyUnion",
         switchType: "int32",
-        aggregatedKind: "union",
         cases: [
           {
             predicates: [3],
@@ -2438,7 +2376,6 @@ module rosidl_parser {
       },
       {
         name: "Foo",
-        aggregatedKind: "struct",
         definitions: [
           {
             isComplex: true,
@@ -2449,7 +2386,6 @@ module rosidl_parser {
       },
       {
         name: "",
-        aggregatedKind: "module",
         definitions: [
           {
             name: "FOUR",
@@ -2505,7 +2441,6 @@ module rosidl_parser {
 
     expect(definitions).toEqual([
       {
-        aggregatedKind: "struct",
         definitions: [
           {
             annotations: {
@@ -2550,7 +2485,6 @@ module rosidl_parser {
         name: "foxglove::Vector3",
       },
       {
-        aggregatedKind: "struct",
         definitions: [
           {
             isComplex: false,
@@ -2584,7 +2518,6 @@ module rosidl_parser {
         name: "foxglove::Quaternion",
       },
       {
-        aggregatedKind: "struct",
         definitions: [
           {
             isComplex: true,
@@ -2612,7 +2545,6 @@ module rosidl_parser {
     expect(ast).toEqual([
       {
         name: "ColorSettings",
-        aggregatedKind: "struct",
         definitions: [
           {
             name: "ColorSettings",
@@ -2637,7 +2569,6 @@ module rosidl_parser {
     expect(out).toEqual([
       {
         name: "SomeStruct",
-        aggregatedKind: "struct",
         definitions: [
           {
             annotations: {
@@ -2675,7 +2606,6 @@ module rosidl_parser {
     expect(ast).toEqual([
       {
         name: "a",
-        aggregatedKind: "struct",
         definitions: [],
       },
     ]);
@@ -2744,7 +2674,6 @@ module rosidl_parser {
     expect(ast).toEqual([
       {
         name: "SomeStruct",
-        aggregatedKind: "struct",
         definitions: [
           {
             name: "include",
@@ -2784,7 +2713,6 @@ module rosidl_parser {
             },
           },
         ],
-        aggregatedKind: "struct",
       },
     ]);
   });

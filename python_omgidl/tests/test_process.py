@@ -41,7 +41,6 @@ class TestProcess(unittest.TestCase):
 
         inner = by_name["outer::Inner"]
         self.assertIsInstance(inner, IDLStructDefinition)
-        self.assertEqual(inner.aggregatedKind, "struct")
         self.assertEqual(len(inner.definitions), 1)
         self.assertEqual(inner.definitions[0].name, "value")
         self.assertEqual(inner.definitions[0].type, "int32")

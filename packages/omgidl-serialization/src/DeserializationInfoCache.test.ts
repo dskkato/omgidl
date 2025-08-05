@@ -1,48 +1,51 @@
-import { IDLMessageDefinition, IDLMessageDefinitionField } from "@foxglove/omgidl-parser";
+import {
+  IDLMessageDefinition,
+  IDLMessageDefinitionField,
+  IDLStructDefinition,
+  IDLUnionDefinition,
+} from "@foxglove/omgidl-parser";
 
 import {
   DeserializationInfoCache,
   FieldDeserializationInfo,
   PRIMITIVE_ARRAY_DESERIALIZERS,
   PRIMITIVE_DESERIALIZERS,
+  StructDeserializationInfo,
+  UnionDeserializationInfo,
 } from "./DeserializationInfoCache";
 import { UNION_DISCRIMINATOR_PROPERTY_KEY } from "./constants";
 
-const TRANSFORM_DEFINITION: IDLMessageDefinition = {
-  name: "geometry_msgs::msg::Transform",
-  definitions: [
+const TRANSFORM_DEFINITION: IDLMessageDefinition = new IDLStructDefinition(
+  "geometry_msgs::msg::Transform",
+  [
     { name: "translation", type: "geometry_msgs::msg::Vector3", isComplex: true },
     { name: "rotation", type: "geometry_msgs::msg::Quaternion", isComplex: true },
   ],
-  aggregatedKind: "struct",
-};
-const VECTOR_DEFINITION: IDLMessageDefinition = {
-  name: "geometry_msgs::msg::Vector3",
-  definitions: [
+);
+const VECTOR_DEFINITION: IDLMessageDefinition = new IDLStructDefinition(
+  "geometry_msgs::msg::Vector3",
+  [
     { name: "x", type: "float64", isComplex: false },
     { name: "y", type: "float64", isComplex: false },
     { name: "z", type: "float64", isComplex: false },
   ],
-  aggregatedKind: "struct",
-};
-const QUATERNION_DEFINITION: IDLMessageDefinition = {
-  name: "geometry_msgs::msg::Quaternion",
-  definitions: [
+);
+const QUATERNION_DEFINITION: IDLMessageDefinition = new IDLStructDefinition(
+  "geometry_msgs::msg::Quaternion",
+  [
     { name: "x", type: "float64", isComplex: false },
     { name: "y", type: "float64", isComplex: false },
     { name: "z", type: "float64", isComplex: false },
     { name: "w", type: "float64", isComplex: false },
   ],
-  aggregatedKind: "struct",
-};
-const TIME_DEFINITION: IDLMessageDefinition = {
-  name: "builtin_interfaces::Time",
-  definitions: [
+);
+const TIME_DEFINITION: IDLMessageDefinition = new IDLStructDefinition(
+  "builtin_interfaces::Time",
+  [
     { name: "sec", type: "int32", isComplex: false },
     { name: "nanosec", type: "uint32", isComplex: false },
   ],
-  aggregatedKind: "struct",
-};
+);
 
 const FLOAT64_PRIMITIVE_DESER_INFO = {
   type: "float64",
@@ -67,8 +70,8 @@ describe("DeserializationInfoCache", () => {
   it("creates deserialization info for struct with primitive fields", () => {
     const deserializationInfoCache = new DeserializationInfoCache([TIME_DEFINITION]);
     const timeDeserInfo = deserializationInfoCache.getComplexDeserializationInfo(TIME_DEFINITION);
+    expect(timeDeserInfo).toBeInstanceOf(StructDeserializationInfo);
     expect(timeDeserInfo).toMatchObject({
-      type: "struct",
       fields: [
         {
           name: "sec",
@@ -100,54 +103,18 @@ describe("DeserializationInfoCache", () => {
     ]);
     const timeDeserInfo =
       deserializationInfoCache.getComplexDeserializationInfo(TRANSFORM_DEFINITION);
+    expect(timeDeserInfo).toBeInstanceOf(StructDeserializationInfo);
     expect(timeDeserInfo).toMatchObject({
-      type: "struct",
       fields: [
         {
           name: "translation",
           type: "geometry_msgs::msg::Vector3",
-          typeDeserInfo: {
-            type: "struct",
-            fields: [
-              {
-                name: "x",
-                ...FLOAT64_PRIMITIVE_DESER_INFO,
-              },
-              {
-                name: "y",
-                ...FLOAT64_PRIMITIVE_DESER_INFO,
-              },
-              {
-                name: "z",
-                ...FLOAT64_PRIMITIVE_DESER_INFO,
-              },
-            ],
-          },
+          typeDeserInfo: expect.any(StructDeserializationInfo),
         },
         {
           name: "rotation",
           type: "geometry_msgs::msg::Quaternion",
-          typeDeserInfo: {
-            type: "struct",
-            fields: [
-              {
-                name: "x",
-                ...FLOAT64_PRIMITIVE_DESER_INFO,
-              },
-              {
-                name: "y",
-                ...FLOAT64_PRIMITIVE_DESER_INFO,
-              },
-              {
-                name: "z",
-                ...FLOAT64_PRIMITIVE_DESER_INFO,
-              },
-              {
-                name: "w",
-                ...FLOAT64_PRIMITIVE_DESER_INFO,
-              },
-            ],
-          },
+          typeDeserInfo: expect.any(StructDeserializationInfo),
         },
       ],
     });
@@ -194,29 +161,29 @@ describe("DeserializationInfoCache", () => {
     expect(timeFieldDeserInfo).toMatchObject({
       name: "time",
       type: "builtin_interfaces::Time",
-      typeDeserInfo: {
-        type: "struct",
-        fields: [
-          {
-            name: "sec",
-            type: "int32",
-            typeDeserInfo: {
-              type: "primitive",
-              typeLength: 4,
-              deserialize: PRIMITIVE_DESERIALIZERS.get("int32"),
-            },
+    });
+    expect(timeFieldDeserInfo.typeDeserInfo).toBeInstanceOf(StructDeserializationInfo);
+    expect(timeFieldDeserInfo.typeDeserInfo).toMatchObject({
+      fields: [
+        {
+          name: "sec",
+          type: "int32",
+          typeDeserInfo: {
+            type: "primitive",
+            typeLength: 4,
+            deserialize: PRIMITIVE_DESERIALIZERS.get("int32"),
           },
-          {
-            name: "nanosec",
-            type: "uint32",
-            typeDeserInfo: {
-              type: "primitive",
-              typeLength: 4,
-              deserialize: PRIMITIVE_DESERIALIZERS.get("uint32"),
-            },
+        },
+        {
+          name: "nanosec",
+          type: "uint32",
+          typeDeserInfo: {
+            type: "primitive",
+            typeLength: 4,
+            deserialize: PRIMITIVE_DESERIALIZERS.get("uint32"),
           },
-        ],
-      },
+        },
+      ],
     });
   });
 
@@ -232,23 +199,23 @@ describe("DeserializationInfoCache", () => {
       name: "vectors",
       type: "geometry_msgs::msg::Vector3",
       isArray: true,
-      typeDeserInfo: {
-        type: "struct",
-        fields: [
-          {
-            name: "x",
-            ...FLOAT64_PRIMITIVE_DESER_INFO,
-          },
-          {
-            name: "y",
-            ...FLOAT64_PRIMITIVE_DESER_INFO,
-          },
-          {
-            name: "z",
-            ...FLOAT64_PRIMITIVE_DESER_INFO,
-          },
-        ],
-      },
+    });
+    expect(timeFieldDeserInfo.typeDeserInfo).toBeInstanceOf(StructDeserializationInfo);
+    expect(timeFieldDeserInfo.typeDeserInfo).toMatchObject({
+      fields: [
+        {
+          name: "x",
+          ...FLOAT64_PRIMITIVE_DESER_INFO,
+        },
+        {
+          name: "y",
+          ...FLOAT64_PRIMITIVE_DESER_INFO,
+        },
+        {
+          name: "z",
+          ...FLOAT64_PRIMITIVE_DESER_INFO,
+        },
+      ],
     });
   });
   it("creates default value for struct with primitive fields", () => {
@@ -295,11 +262,10 @@ describe("DeserializationInfoCache", () => {
     expect(deserializationInfoCache.getFieldDefault(vectorFieldDeserInfo)).toEqual([]);
   });
   it("creates correct default for a union field with a default case", () => {
-    const unionDefinition: IDLMessageDefinition = {
-      name: "test::Union",
-      aggregatedKind: "union",
-      switchType: "uint32",
-      cases: [
+    const unionDefinition: IDLMessageDefinition = new IDLUnionDefinition(
+      "test::Union",
+      "uint32",
+      [
         {
           predicates: [0],
           type: { name: "a", type: "int32", isComplex: false },
@@ -309,8 +275,8 @@ describe("DeserializationInfoCache", () => {
           type: { name: "b", type: "float64", isComplex: false },
         },
       ],
-      defaultCase: { name: "c", type: "string", isComplex: false },
-    };
+      { name: "c", type: "string", isComplex: false },
+    );
     const deserializationInfoCache = new DeserializationInfoCache([unionDefinition]);
     const fieldDeserInfo = makeFieldDeserFromComplexDef(unionDefinition, deserializationInfoCache);
     expect(deserializationInfoCache.getFieldDefault(fieldDeserInfo)).toEqual({
@@ -319,11 +285,10 @@ describe("DeserializationInfoCache", () => {
     });
   });
   it("creates correct default for a union field without a default case", () => {
-    const unionDefinition: IDLMessageDefinition = {
-      name: "test::Union",
-      aggregatedKind: "union",
-      switchType: "uint32",
-      cases: [
+    const unionDefinition: IDLMessageDefinition = new IDLUnionDefinition(
+      "test::Union",
+      "uint32",
+      [
         {
           predicates: [1],
           type: { name: "a", type: "uint8", isComplex: false },
@@ -333,7 +298,7 @@ describe("DeserializationInfoCache", () => {
           type: { name: "b", type: "float64", isComplex: false },
         },
       ],
-    };
+    );
     const deserializationInfoCache = new DeserializationInfoCache([unionDefinition]);
     const fieldDeserInfo = makeFieldDeserFromComplexDef(unionDefinition, deserializationInfoCache);
     expect(deserializationInfoCache.getFieldDefault(fieldDeserInfo)).toEqual({
@@ -342,10 +307,9 @@ describe("DeserializationInfoCache", () => {
     });
   });
   it("creates correct default for a struct field with optional and non-optional members", () => {
-    const unionDefinition: IDLMessageDefinition = {
-      name: "test::Message",
-      aggregatedKind: "struct",
-      definitions: [
+    const unionDefinition: IDLMessageDefinition = new IDLStructDefinition(
+      "test::Message",
+      [
         { name: "a", type: "uint32", isComplex: false },
         {
           name: "b",
@@ -356,7 +320,7 @@ describe("DeserializationInfoCache", () => {
           },
         },
       ],
-    };
+    );
     const deserializationInfoCache = new DeserializationInfoCache([unionDefinition]);
     const fieldDeserInfo = makeFieldDeserFromComplexDef(unionDefinition, deserializationInfoCache);
     expect(deserializationInfoCache.getFieldDefault(fieldDeserInfo)).toEqual({

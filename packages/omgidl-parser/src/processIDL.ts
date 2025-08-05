@@ -11,7 +11,7 @@ import {
 import { UnionIDLNode } from "./IDLNodes/UnionIDLNode";
 import { AnyIDLNode } from "./IDLNodes/interfaces";
 import { AnyASTNode, AnyAnnotation, UnresolvedConstantValue } from "./astTypes";
-import { IDLMessageDefinition } from "./types";
+import { IDLMessageDefinition, IDLModuleDefinition } from "./types";
 
 /** Initializes map of IDL nodes to their scoped namespaces */
 export function buildMap(definitions: AnyASTNode[]): Map<string, AnyIDLNode> {
@@ -101,11 +101,9 @@ export function toIDLMessageDefinitions(map: Map<string, AnyIDLNode>): IDLMessag
     }
   }
   if (topLevelConstantDefinitions.length > 0) {
-    messageDefinitions.push({
-      name: "",
-      definitions: topLevelConstantDefinitions,
-      aggregatedKind: "module",
-    });
+    messageDefinitions.push(
+      new IDLModuleDefinition("", topLevelConstantDefinitions),
+    );
   }
   return messageDefinitions;
 }

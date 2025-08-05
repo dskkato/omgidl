@@ -2,7 +2,11 @@ import { ConstantIDLNode } from "./ConstantIDLNode";
 import { IDLNode } from "./IDLNode";
 import { AnyIDLNode, IModuleIDLNode } from "./interfaces";
 import { ModuleASTNode } from "../astTypes";
-import { IDLMessageDefinition, IDLMessageDefinitionField } from "../types";
+import {
+  IDLMessageDefinition,
+  IDLMessageDefinitionField,
+  IDLModuleDefinition,
+} from "../types";
 
 export class ModuleIDLNode extends IDLNode<ModuleASTNode> implements IModuleIDLNode {
   /** Writes out module to message definition that contains only its directly descendent constant definitions */
@@ -16,11 +20,7 @@ export class ModuleIDLNode extends IDLNode<ModuleASTNode> implements IModuleIDLN
     if (definitions.length === 0) {
       return undefined;
     }
-    return {
-      name: this.scopedIdentifier,
-      definitions,
-      aggregatedKind: "module",
-    };
+    return new IDLModuleDefinition(this.scopedIdentifier, definitions);
   }
 
   get definitions(): AnyIDLNode[] {

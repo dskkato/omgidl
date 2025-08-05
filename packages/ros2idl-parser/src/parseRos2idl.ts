@@ -1,5 +1,10 @@
 import { MessageDefinition, MessageDefinitionField } from "@foxglove/message-definition";
-import { IDLMessageDefinitionField, IDLMessageDefinition, parseIDL } from "@foxglove/omgidl-parser";
+import {
+  IDLMessageDefinitionField,
+  IDLMessageDefinition,
+  IDLUnionDefinition,
+  parseIDL,
+} from "@foxglove/omgidl-parser";
 
 /**
  * Parses `ros2idl` schema into flattened message definitions for serialization/deserialization.
@@ -40,10 +45,10 @@ export function parseRos2idl(messageDefinition: string): MessageDefinition[] {
 
 // Removes `annotation` field from the Definition and DefinitionField objects
 function toMessageDefinition(idlMsgDef: IDLMessageDefinition): MessageDefinition {
-  if (idlMsgDef.aggregatedKind === "union") {
+  if (idlMsgDef instanceof IDLUnionDefinition) {
     throw new Error(`Unions are not supported in MessageDefinition type`);
   }
-  const { definitions, annotations: _a, aggregatedKind: _ak, ...partialDef } = idlMsgDef;
+  const { definitions, annotations: _a, ...partialDef } = idlMsgDef;
   const fieldDefinitions = definitions.map((def: IDLMessageDefinitionField) => {
     const { annotations: _an, arrayLengths, ...partialFieldDef } = def;
     const fieldDef = { ...partialFieldDef };

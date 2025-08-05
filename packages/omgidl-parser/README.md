@@ -54,7 +54,6 @@ const definitions = parseIDL(schemaString);
 [
   {
     name: "foxglove::Vector3",
-    aggregatedKind: "struct",
     definitions: [
       {
         name: "x",
@@ -75,7 +74,6 @@ const definitions = parseIDL(schemaString);
   },
   {
     name: "foxglove::Quaternion",
-    aggregatedKind: "struct",
     definitions: [
       {
         name: "x",
@@ -109,7 +107,6 @@ const definitions = parseIDL(schemaString);
   },
   {
     name: "foxglove::Pose",
-    aggregatedKind: "struct",
     definitions: [
       {
         isComplex: true,

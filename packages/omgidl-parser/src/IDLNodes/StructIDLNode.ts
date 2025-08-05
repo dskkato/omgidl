@@ -2,7 +2,7 @@ import { IDLNode } from "./IDLNode";
 import { StructMemberIDLNode } from "./StructMemberIDLNode";
 import { IStructIDLNode } from "./interfaces";
 import { StructASTNode } from "../astTypes";
-import { IDLMessageDefinition } from "../types";
+import { IDLMessageDefinition, IDLStructDefinition } from "../types";
 
 export class StructIDLNode extends IDLNode<StructASTNode> implements IStructIDLNode {
   get type(): string {
@@ -16,12 +16,11 @@ export class StructIDLNode extends IDLNode<StructASTNode> implements IStructIDLN
   /** Writes out struct as IDL Message definition with resolved `definitions` members */
   toIDLMessageDefinition(): IDLMessageDefinition {
     const definitions = this.definitions.map((def) => def.toIDLMessageDefinitionField());
-    return {
-      name: this.scopedIdentifier,
+    return new IDLStructDefinition(
+      this.scopedIdentifier,
       definitions,
-      aggregatedKind: "struct",
-      ...(this.astNode.annotations ? { annotations: this.astNode.annotations } : undefined),
-    };
+      this.astNode.annotations,
+    );
   }
 
   /** Gets node within struct by its local name (unscoped) */
