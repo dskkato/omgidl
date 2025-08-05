@@ -5,18 +5,17 @@ from dataclasses import field as dataclass_field
 from typing import List, Optional, Sequence, Union
 
 # Type aliases matching the TypeScript package
-ConstantValue = Optional[Union[str, int, float, bool]]
-DefaultValue = Optional[
-    Union[
-        str,
-        int,
-        float,
-        bool,
-        Sequence[str],
-        Sequence[int],
-        Sequence[float],
-        Sequence[bool],
-    ]
+ConstantValue = Union[str, int, float, bool, None]
+DefaultValue = Union[
+    str,
+    int,
+    float,
+    bool,
+    Sequence[str],
+    Sequence[int],
+    Sequence[float],
+    Sequence[bool],
+    None,
 ]
 
 
@@ -26,11 +25,11 @@ class MessageDefinitionField:
 
     type: str
     name: str
-    isComplex: bool = False
+    isComplex: Optional[bool] = None
     enumType: Optional[str] = None
-    isArray: bool = False
+    isArray: Optional[bool] = None
     arrayLength: Optional[int] = None
-    isConstant: bool = False
+    isConstant: Optional[bool] = None
     value: ConstantValue = None
     valueText: Optional[str] = None
     upperBound: Optional[int] = None

@@ -136,9 +136,9 @@ def _convert_field(
     return MessageDefinitionField(
         type=t,
         name=field.name,
-        isComplex=is_complex,
+        isComplex=True if is_complex else None,
         enumType=enum_type,
-        isArray=bool(array_lengths) or is_sequence,
+        isArray=True if (array_lengths or is_sequence) else None,
         arrayLength=array_lengths[0] if array_lengths else None,
         arrayUpperBound=seq_bound if is_sequence else None,
     )
