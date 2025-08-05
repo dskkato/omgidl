@@ -138,7 +138,7 @@ def _convert_field(
         name=field.name,
         isComplex=is_complex,
         enumType=enum_type,
-        isArray=bool(array_lengths or is_sequence),
+        isArray=array_lengths or is_sequence,
         arrayLength=array_lengths[0] if array_lengths else None,
         arrayUpperBound=seq_bound if is_sequence else None,
     )
