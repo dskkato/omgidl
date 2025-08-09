@@ -30,6 +30,7 @@ enumerator: annotations? NAME enum_value?
 enum_value: "@value" "(" INT ")"
 
 constant: "const" type NAME "=" const_value semicolon
+# Allow multiple adjacent string literals, which are concatenated (e.g., "part1" "part2")
 const_value: STRING+ -> const_string
            | BOOL -> const_bool
            | const_sum
@@ -87,6 +88,10 @@ COMMENT: /\/\/[^\n]*|\/\*[\s\S]*?\*\//
 %ignore WS
 %ignore COMMENT
 
+# Annotations support two parameter formats:
+#   - Named parameters: @foo(bar=1, baz=2)
+#   - Single value:     @foo(42)
+# Both forms are supported via the annotation_params rule below.
 annotation: "@" NAME ("(" annotation_params ")")?
 annotation_params: named_annotation_params
                    | const_value
