@@ -30,7 +30,7 @@ enumerator: annotations? NAME enum_value?
 enum_value: "@value" "(" INT ")"
 
 constant: "const" type NAME "=" const_value semicolon
-const_value: STRING -> const_string
+const_value: STRING+ -> const_string
            | BOOL -> const_bool
            | const_sum
 
@@ -87,7 +87,11 @@ COMMENT: /\/\/[^\n]*|\/\*[\s\S]*?\*\//
 %ignore WS
 %ignore COMMENT
 
-annotation: "@" NAME ("(" const_value ")")?
+annotation: "@" NAME ("(" annotation_params ")")?
+annotation_params: named_annotation_params
+                   | const_value
+named_annotation_params: named_annotation_param ("," named_annotation_param)*
+named_annotation_param: NAME "=" const_value
 annotations: annotation+
 """
 
@@ -272,6 +276,17 @@ class _Transformer(Transformer):
         value = items[1] if len(items) > 1 else True
         return (name, value)
 
+    def annotation_params(self, items):
+        (value,) = items
+        return value
+
+    def named_annotation_params(self, items):
+        return dict(items)
+
+    def named_annotation_param(self, items):
+        name, value = items
+        return (name, value)
+
     def annotations(self, items):
         return dict(items)
 
@@ -311,8 +326,7 @@ class _Transformer(Transformer):
         )
 
     def const_string(self, items):
-        (value,) = items
-        return value
+        return "".join(items)
 
     def const_bool(self, items):
         (token,) = items
