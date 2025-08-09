@@ -396,11 +396,11 @@ line3")
             result,
             [
                 Constant(name="PI", type="float32", value=3.14),
-                Constant(name="FLAG", type="boolean", value=True),
+                Constant(name="FLAG", type="bool", value=True),
                 Constant(name="GREETING", type="string", value="hello"),
                 Constant(name="GREETING2", type="string", value="hello"),
                 Constant(name="PI2", type="float32", value=3.14),
-                Constant(name="FLAG2", type="boolean", value=True),
+                Constant(name="FLAG2", type="bool", value=True),
             ],
         )
 
