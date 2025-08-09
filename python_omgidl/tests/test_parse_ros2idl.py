@@ -143,7 +143,7 @@ class TestParseRos2idl(unittest.TestCase):
                     MessageDefinitionField(
                         type="uint32",
                         name="error",
-                        enumType=("test_interfaces/msg/" "TestMessage_Enums/TestEnum"),
+                        enumType="test_interfaces/msg/TestMessage_Enums/TestEnum",
                     )
                 ],
             ),
