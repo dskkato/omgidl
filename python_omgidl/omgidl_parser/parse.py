@@ -184,6 +184,7 @@ class _Transformer(Transformer):
         "unsigned long": "uint32",
         "long long": "int64",
         "long": "int32",
+        "boolean": "bool",
     }
 
     _BUILTIN_TYPES = {
@@ -203,7 +204,7 @@ class _Transformer(Transformer):
         "char",
         "string",
         "wstring",
-        "boolean",
+        "bool",
     }
 
     def __init__(self):
