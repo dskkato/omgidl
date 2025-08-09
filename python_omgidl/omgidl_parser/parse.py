@@ -82,6 +82,10 @@ semicolon: ";"
 BOOL.2: /(?i)true|false/
 %import common.SIGNED_INT
 %import common.SIGNED_FLOAT
+# STRING matches both double-quoted and single-quoted string literals, including escaped characters.
+# The (?s) flag enables dot-all mode so that '.' matches newlines, allowing multiline strings.
+# The pattern uses non-capturing groups to separately handle double-quoted and single-quoted strings.
+# Inside each, (?:\\.|[^"\\])* matches any sequence of escaped characters or any character except the quote or backslash.
 STRING: /(?s)(?:"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')/
 %import common.WS
 
