@@ -79,7 +79,7 @@ array: ("[" INT "]")+
 semicolon: ";"
 
 %import common.INT
-BOOL.2: /true|false/i
+BOOL.2: /(?i:true|false)/
 %import common.SIGNED_INT
 %import common.SIGNED_FLOAT
 # STRING matches both double-quoted and single-quoted string literals, including
