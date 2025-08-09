@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import codecs
+import threading
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, List, Optional
@@ -70,7 +71,7 @@ string_bound: "<" INT ">"
 
 scoped_name: NAME ("::" NAME)*
 
-BUILTIN_TYPE: /(unsigned\s+(short|long(\s+long)?)|long\s+double|double|float|short|long\s+long|long|int8|uint8|int16|uint16|int32|uint32|int64|uint64|byte|octet|wchar|char|boolean)/  # noqa: E501
+BUILTIN_TYPE: /(unsigned\s+(short|long(\s+long)?)|long\s+double|double|float|short|long\s+long|long|int8|uint8|int16|uint16|int32|uint32|int64|uint64|byte|octet|wchar|char|boolean)\b/  # noqa: E501
 STRING_KW: "string"
 WSTRING_KW: "wstring"
 NAME: /[A-Za-z_][A-Za-z0-9_]*/
@@ -80,14 +81,15 @@ array: ("[" INT "]")+
 semicolon: ";"
 
 %import common.INT
-BOOL.2: /(?i)true|false/
+BOOL.2: /(?i:\btrue\b|\bfalse\b)/
 %import common.SIGNED_INT
 %import common.SIGNED_FLOAT
-# STRING matches both double-quoted and single-quoted string literals, including escaped characters.
-# The (?s) flag enables dot-all mode so that '.' matches newlines, allowing multiline strings.
-# The pattern uses non-capturing groups to separately handle double-quoted and single-quoted strings.
-# Inside each, (?:\\.|[^"\\])* matches any sequence of escaped characters or any character except the quote or backslash.
-STRING: /(?s)(?:"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')/
+# STRING matches both double-quoted and single-quoted string literals, including
+# escaped characters. We avoid inline regex flags (e.g., ``(?s)``) so the grammar
+# works with Python's built-in ``re`` module without requiring the third-party
+# ``regex`` package. Instead, ``[\s\S]`` is used to match any character,
+# including newlines, within escape sequences.
+STRING: /"(?:\\[\s\S]|[^"\\])*"|'(?:\\[\s\S]|[^'\\])*'/
 %import common.WS
 
 COMMENT: /\/\/[^\n]*|\/\*[\s\S]*?\*\//
@@ -109,6 +111,23 @@ annotations: annotation+
 ROS2_IDL_GRAMMAR = (
     Path(__file__).with_name("ros2_idl_grammar.lark").read_text(encoding="utf-8")
 )
+
+
+# Build a Lark parser per thread. Constructing the parser is relatively
+# expensive, and doing it on every call to ``parse_idl`` results in significant
+# overhead. Reusing a parser instance per thread drastically reduces the
+# per-call parsing cost while remaining thread-safe.
+_THREAD_LOCAL = threading.local()
+
+
+def _get_parser() -> Lark:
+    parser = getattr(_THREAD_LOCAL, "parser", None)
+    if parser is None:
+        parser = Lark(
+            IDL_GRAMMAR, start="start", parser="lalr", maybe_placeholders=False
+        )
+        _THREAD_LOCAL.parser = parser
+    return parser
 
 
 @dataclass
