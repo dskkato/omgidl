@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import codecs
 from dataclasses import dataclass, field
 from typing import Any, List, Optional
 from typing import Union as TypingUnion
@@ -81,8 +82,11 @@ semicolon: ";"
 BOOL.2: /(?i)true|false/
 %import common.SIGNED_INT
 %import common.SIGNED_FLOAT
-%import common.ESCAPED_STRING
-STRING: ESCAPED_STRING
+# STRING matches both double-quoted and single-quoted string literals, including escaped characters.
+# The (?s) flag enables dot-all mode so that '.' matches newlines, allowing multiline strings.
+# The pattern uses non-capturing groups to separately handle double-quoted and single-quoted strings.
+# Inside each, (?:\\.|[^"\\])* matches any sequence of escaped characters or any character except the quote or backslash.
+STRING: /(?s)(?:"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')/
 %import common.WS
 
 COMMENT: /\/\/[^\n]*|\/\*[\s\S]*?\*\//
@@ -465,7 +469,7 @@ class _Transformer(Transformer):
             scope: List[str],
         ):
             for d in defs:
-                if isinstance(d, (Struct, Union, Typedef)):
+                if isinstance(d, (Struct, Union, Typedef, Enum)):
                     full = "::".join([*scope, d.name])
                     named_types.add(full)
                 if isinstance(d, Module):
@@ -479,7 +483,7 @@ class _Transformer(Transformer):
             if f.type.startswith("::"):
                 f.type = f.type[2:]
                 return
-            if "::" in f.type:
+            if f.type in named_types:
                 return
             resolved = None
             for i in range(len(scope), -1, -1):

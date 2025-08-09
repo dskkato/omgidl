@@ -121,6 +121,34 @@ class TestParseRos2idl(unittest.TestCase):
             ],
         )
 
+    def test_nested_enum_field(self):
+        schema = """
+        module test_interfaces {
+          module msg {
+            module TestMessage_Enums {
+              enum TestEnum { OK, ERROR, FATAL };
+            };
+            struct TestMessage {
+              TestMessage_Enums::TestEnum error;
+            };
+          };
+        };
+        """
+        types = parse_ros2idl(schema)
+        self.assertEqual(
+            types[-1],
+            MessageDefinition(
+                name="test_interfaces/msg/TestMessage",
+                definitions=[
+                    MessageDefinitionField(
+                        type="uint32",
+                        name="error",
+                        enumType="test_interfaces/msg/TestMessage_Enums/TestEnum",
+                    )
+                ],
+            ),
+        )
+
     def test_typedef_resolution(self):
         schema = """
         typedef long MyLong;
