@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import codecs
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, List, Optional
 from typing import Union as TypingUnion
 
@@ -104,6 +105,10 @@ named_annotation_params: named_annotation_param ("," named_annotation_param)*
 named_annotation_param: NAME "=" const_value
 annotations: annotation+
 """
+
+ROS2_IDL_GRAMMAR = (
+    Path(__file__).with_name("ros2_idl_grammar.lark").read_text(encoding="utf-8")
+)
 
 
 @dataclass
@@ -538,9 +543,22 @@ class _Transformer(Transformer):
         resolve(definitions, [])
 
 
-def parse_idl(source: str) -> List[Struct | Module | Constant | Enum | Typedef | Union]:
-    parser = Lark(IDL_GRAMMAR, start="start")
+def parse_idl(
+    source: str, *, use_ros2_grammar: bool = False
+) -> List[Struct | Module | Constant | Enum | Typedef | Union] | Any:
+    """Parse an IDL source string.
+
+    If ``use_ros2_grammar`` is set, the ROS 2 grammar is used and the raw parse
+    tree is returned. This is experimental and does not yet integrate with the
+    existing ``_Transformer``.
+    """
+
+    grammar = ROS2_IDL_GRAMMAR if use_ros2_grammar else IDL_GRAMMAR
+    start = "specification" if use_ros2_grammar else "start"
+    parser = Lark(grammar, start=start)
     tree = parser.parse(source)
+    if use_ros2_grammar:
+        return tree
     transformer = _Transformer()
     result = transformer.transform(tree)
     transformer.resolve_types(result)
