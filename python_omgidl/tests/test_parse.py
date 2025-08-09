@@ -481,6 +481,27 @@ line3")
             [Struct(name="A", fields=[Field(name="x", type="int32")])],
         )
 
+    def test_bool_token_word_boundaries(self):
+        schema = """\
+        struct S {
+            int32 falsehood;
+            int32 trueness;
+        };
+        """
+        result = parse_idl(schema)
+        self.assertEqual(
+            result,
+            [
+                Struct(
+                    name="S",
+                    fields=[
+                        Field(name="falsehood", type="int32"),
+                        Field(name="trueness", type="int32"),
+                    ],
+                )
+            ],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

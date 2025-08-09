@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import codecs
+import threading
 from dataclasses import dataclass, field
 from typing import Any, List, Optional
 from typing import Union as TypingUnion
@@ -79,7 +80,7 @@ array: ("[" INT "]")+
 semicolon: ";"
 
 %import common.INT
-BOOL.2: /(?i:true|false)/
+BOOL.2: /(?i:\btrue\b|\bfalse\b)/
 %import common.SIGNED_INT
 %import common.SIGNED_FLOAT
 # STRING matches both double-quoted and single-quoted string literals, including
@@ -107,11 +108,21 @@ annotations: annotation+
 """
 
 
-# Build the Lark parser once at import time. Constructing the parser is
-# relatively expensive, and doing it on every call to `parse_idl` results in a
-# significant overhead. Reusing a single parser instance dramatically reduces
-# the per-call parsing cost.
-_PARSER = Lark(IDL_GRAMMAR, start="start", parser="lalr", maybe_placeholders=False)
+# Build a Lark parser per thread. Constructing the parser is relatively
+# expensive, and doing it on every call to ``parse_idl`` results in significant
+# overhead. Reusing a parser instance per thread drastically reduces the
+# per-call parsing cost while remaining thread-safe.
+_THREAD_LOCAL = threading.local()
+
+
+def _get_parser() -> Lark:
+    parser = getattr(_THREAD_LOCAL, "parser", None)
+    if parser is None:
+        parser = Lark(
+            IDL_GRAMMAR, start="start", parser="lalr", maybe_placeholders=False
+        )
+        _THREAD_LOCAL.parser = parser
+    return parser
 
 
 @dataclass
@@ -548,7 +559,8 @@ class _Transformer(Transformer):
 
 def parse_idl(source: str) -> List[Struct | Module | Constant | Enum | Typedef | Union]:
     """Parse an IDL definition string into structured objects."""
-    tree = _PARSER.parse(source)
+    parser = _get_parser()
+    tree = parser.parse(source)
     transformer = _Transformer()
     result = transformer.transform(tree)
     transformer.resolve_types(result)
