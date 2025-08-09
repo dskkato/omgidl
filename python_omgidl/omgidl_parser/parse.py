@@ -69,7 +69,7 @@ string_bound: "<" INT ">"
 
 scoped_name: NAME ("::" NAME)*
 
-BUILTIN_TYPE: /(unsigned\s+(short|long(\s+long)?)|long\s+double|double|float|short|long\s+long|long|int8|uint8|int16|uint16|int32|uint32|int64|uint64|byte|octet|wchar|char|boolean)/  # noqa: E501
+BUILTIN_TYPE: /(unsigned\s+(short|long(\s+long)?)|long\s+double|double|float|short|long\s+long|long|int8|uint8|int16|uint16|int32|uint32|int64|uint64|byte|octet|wchar|char|boolean)\b/  # noqa: E501
 STRING_KW: "string"
 WSTRING_KW: "wstring"
 NAME: /[A-Za-z_][A-Za-z0-9_]*/
@@ -79,14 +79,15 @@ array: ("[" INT "]")+
 semicolon: ";"
 
 %import common.INT
-BOOL.2: /(?i)true|false/
+BOOL.2: /true|false/i
 %import common.SIGNED_INT
 %import common.SIGNED_FLOAT
-# STRING matches both double-quoted and single-quoted string literals, including escaped characters.
-# The (?s) flag enables dot-all mode so that '.' matches newlines, allowing multiline strings.
-# The pattern uses non-capturing groups to separately handle double-quoted and single-quoted strings.
-# Inside each, (?:\\.|[^"\\])* matches any sequence of escaped characters or any character except the quote or backslash.
-STRING: /(?s)(?:"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')/
+# STRING matches both double-quoted and single-quoted string literals, including
+# escaped characters. We avoid inline regex flags (e.g., ``(?s)``) so the grammar
+# works with Python's built-in ``re`` module without requiring the third-party
+# ``regex`` package. Instead, ``[\s\S]`` is used to match any character,
+# including newlines, within escape sequences.
+STRING: /"(?:\\[\s\S]|[^"\\])*"|'(?:\\[\s\S]|[^'\\])*'/
 %import common.WS
 
 COMMENT: /\/\/[^\n]*|\/\*[\s\S]*?\*\//
@@ -104,6 +105,13 @@ named_annotation_params: named_annotation_param ("," named_annotation_param)*
 named_annotation_param: NAME "=" const_value
 annotations: annotation+
 """
+
+
+# Build the Lark parser once at import time. Constructing the parser is
+# relatively expensive, and doing it on every call to `parse_idl` results in a
+# significant overhead. Reusing a single parser instance dramatically reduces
+# the per-call parsing cost.
+_PARSER = Lark(IDL_GRAMMAR, start="start", parser="lalr", maybe_placeholders=False)
 
 
 @dataclass
@@ -539,8 +547,8 @@ class _Transformer(Transformer):
 
 
 def parse_idl(source: str) -> List[Struct | Module | Constant | Enum | Typedef | Union]:
-    parser = Lark(IDL_GRAMMAR, start="start")
-    tree = parser.parse(source)
+    """Parse an IDL definition string into structured objects."""
+    tree = _PARSER.parse(source)
     transformer = _Transformer()
     result = transformer.transform(tree)
     transformer.resolve_types(result)
