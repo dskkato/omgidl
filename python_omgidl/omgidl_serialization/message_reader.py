@@ -3,7 +3,7 @@ from __future__ import annotations
 import struct
 import sys
 from array import array
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, cast
 
 from omgidl_parser.parse import Field, Module, Struct
 from omgidl_parser.parse import Union as IDLUnion
@@ -39,14 +39,21 @@ class MessageReader:
     def __init__(
         self, root_definition_name: str, definitions: List[Struct | Module | IDLUnion]
     ) -> None:
-        root = _find_struct(definitions, root_definition_name)
+        root = _find_struct(
+            cast(List[Struct | Module], definitions), root_definition_name
+        )
         if root is None:
             raise ValueError(
                 f'Root definition name "{root_definition_name}" not found '
                 "in schema definitions."
             )
         self.cache = DeserializationInfoCache(definitions)
-        self.root_info = self.cache.get_complex_deser_info(root)
+        # ``_find_struct`` guarantees that ``root`` is a ``Struct`` definition,
+        # so the returned complex deserialization info will always be for a
+        # struct.  Casting here narrows the type for ``_read_struct`` calls.
+        self.root_info: StructDeserializationInfo = cast(
+            StructDeserializationInfo, self.cache.get_complex_deser_info(root)
+        )
         self._fmt_prefix = "<"
         self.encapsulation_kind = EncapsulationKind.CDR_LE
 
@@ -109,7 +116,7 @@ class MessageReader:
             length = struct.unpack_from(self._fmt_prefix + "I", view, offset)[0]
             offset += 4
             if t in ("string", "wstring"):
-                arr: List[Any] = []
+                seq: List[str] = []
                 for _ in range(length):
                     offset += _padding(offset, 4)
                     slen = struct.unpack_from(self._fmt_prefix + "I", view, offset)[0]
@@ -126,8 +133,9 @@ class MessageReader:
                             f"Field '{field.name}' string length {len(s)} exceeds "
                             f"bound {field.string_upper_bound}"
                         )
-                    arr.append(s)
-            elif t in PRIMITIVE_SIZES:
+                    seq.append(s)
+                return seq, offset
+            if t in PRIMITIVE_SIZES:
                 size = _primitive_size(t)
                 typecode = PRIMITIVE_FORMATS[t]
                 offset += _padding(offset, size)
@@ -140,17 +148,17 @@ class MessageReader:
                     self._fmt_prefix == ">" and sys.byteorder == "little"
                 ):
                     arr.byteswap()
-            else:
-                if field.type_info is None:
-                    raise ValueError(f"Unrecognized struct or union type {t}")
-                arr = []
-                for _ in range(length):
-                    if isinstance(field.type_info, StructDeserializationInfo):
-                        msg, offset = self._read_struct(field.type_info, view, offset)
-                    else:
-                        msg, offset = self._read_union(field.type_info, view, offset)
-                    arr.append(msg)
-            return arr, offset
+                return arr, offset
+            if field.type_info is None:
+                raise ValueError(f"Unrecognized struct or union type {t}")
+            seq_arr: List[Any] = []
+            for _ in range(length):
+                if isinstance(field.type_info, StructDeserializationInfo):
+                    msg, offset = self._read_struct(field.type_info, view, offset)
+                else:
+                    msg, offset = self._read_union(field.type_info, view, offset)
+                seq_arr.append(msg)
+            return seq_arr, offset
 
         if t in ("string", "wstring"):
             offset += _padding(offset, 4)
@@ -195,14 +203,14 @@ class MessageReader:
         t = field.type
         length = lengths[0]
         if len(lengths) > 1:
-            arr: List[Any] = []
+            nested: List[Any] = []
             for _ in range(length):
                 sub, offset = self._read_array(field, view, offset, lengths[1:])
-                arr.append(sub)
-            return arr, offset
+                nested.append(sub)
+            return nested, offset
 
         if t in ("string", "wstring"):
-            arr: List[str] = []
+            text_arr: List[str] = []
             for _ in range(length):
                 offset += _padding(offset, 4)
                 slen = struct.unpack_from(self._fmt_prefix + "I", view, offset)[0]
@@ -219,8 +227,8 @@ class MessageReader:
                         f"Field '{field.name}' string length {len(s)} exceeds "
                         f"bound {field.string_upper_bound}"
                     )
-                arr.append(s)
-            return arr, offset
+                text_arr.append(s)
+            return text_arr, offset
 
         if t in PRIMITIVE_SIZES:
             size = _primitive_size(t)
@@ -228,25 +236,25 @@ class MessageReader:
             offset += _padding(offset, size)
             byte_length = size * length
             data = view[offset : offset + byte_length]
-            arr = array(typecode)
-            arr.frombytes(data.tobytes())
+            prim_arr = array(typecode)
+            prim_arr.frombytes(data.tobytes())
             offset += byte_length
             if (self._fmt_prefix == "<" and sys.byteorder == "big") or (
                 self._fmt_prefix == ">" and sys.byteorder == "little"
             ):
-                arr.byteswap()
-            return arr, offset
+                prim_arr.byteswap()
+            return prim_arr, offset
 
         if field.type_info is None:
             raise ValueError(f"Unrecognized struct or union type {t}")
-        arr: List[Any] = []
+        items: List[Any] = []
         for _ in range(length):
             if isinstance(field.type_info, StructDeserializationInfo):
                 msg, offset = self._read_struct(field.type_info, view, offset)
             else:
                 msg, offset = self._read_union(field.type_info, view, offset)
-            arr.append(msg)
-        return arr, offset
+            items.append(msg)
+        return items, offset
 
     def _read_union(
         self, info: UnionDeserializationInfo, view: memoryview, offset: int

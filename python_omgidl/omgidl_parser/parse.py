@@ -170,7 +170,7 @@ class Typedef:
 
 @dataclass
 class UnionCase:
-    predicates: List[int | str]
+    predicates: List[int | bool | str]
     field: Field
 
 
