@@ -18,6 +18,14 @@ dev = [
     "pre-commit",
 ]
 
+[tool.setuptools]
+packages = [
+    "foxglove_message_definition",
+    "omgidl_parser",
+    "omgidl_serialization",
+    "ros2idl_parser",
+]
+
 [tool.isort]
 profile = "black"
 
@@ -30,6 +38,3 @@ extend-ignore = ["E203"]
 
 [tool.pytest.ini_options]
 addopts = "-q"
-
-[tool.setuptools.packages.find]
-where = ["python_omgidl"]
