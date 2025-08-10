@@ -18,13 +18,8 @@ dev = [
     "pre-commit",
 ]
 
-[tool.setuptools]
-packages = [
-    "foxglove_message_definition",
-    "omgidl_parser",
-    "omgidl_serialization",
-    "ros2idl_parser",
-]
+[tool.setuptools.packages.find]
+where = ["."]
 
 [tool.isort]
 profile = "black"
