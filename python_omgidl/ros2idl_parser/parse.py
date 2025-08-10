@@ -141,14 +141,7 @@ def _convert_field(
         )
     enum_type: Optional[str] = None
     is_complex = False
-    ref = idl_map.get(t)
-    if ref is None and "::" not in t:
-        for i in range(len(scope), -1, -1):
-            scoped = "::".join([*scope[:i], t])
-            ref = idl_map.get(scoped)
-            if ref is not None:
-                t = scoped
-                break
+    t, ref = _resolve_scoped_type(t, scope, idl_map)
     if isinstance(ref, IDLEnum):
         enum_type = _normalize_name(t)
         t = "uint32"
@@ -200,6 +193,18 @@ def _collect_typedefs(
 
     collect(defs, scope)
     return typedefs
+
+
+def _resolve_scoped_type(name: str, scope: List[str], idl_map):
+    ref = idl_map.get(name)
+    if ref is not None or "::" in name:
+        return name, ref
+    for i in range(len(scope), -1, -1):
+        scoped = "::".join([*scope[:i], name])
+        ref = idl_map.get(scoped)
+        if ref is not None:
+            return scoped, ref
+    return name, None
 
 
 def _resolve_type(name: str, typedefs: dict[str, IDLTypedef]) -> str:
