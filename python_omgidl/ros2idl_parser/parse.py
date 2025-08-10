@@ -14,6 +14,8 @@ from omgidl_parser.parse import Union as IDLUnion
 from omgidl_parser.parse import parse_idl
 from omgidl_parser.process import build_map
 
+UNION_DISCRIMINATOR_PROPERTY_KEY = "$discriminator"
+
 ROS2IDL_HEADER = re.compile(r"={80}\nIDL: [a-zA-Z][\w]*(?:\/[a-zA-Z][\w]*)*")
 
 
@@ -59,10 +61,27 @@ def _process_definition(
             MessageDefinition(name="/".join([*scope, defn.name]), definitions=fields)
         )
     elif isinstance(defn, IDLUnion):
-        raise ValueError("Unions are not supported in MessageDefinition type")
+        disc_field = _convert_field(
+            IDLField(name=UNION_DISCRIMINATOR_PROPERTY_KEY, type=defn.switch_type),
+            typedefs,
+            idl_map,
+            scope,
+        )
+        case_fields = [
+            _convert_field(c.field, typedefs, idl_map, scope) for c in defn.cases
+        ]
+        default_field = (
+            [_convert_field(defn.default, typedefs, idl_map, scope)]
+            if defn.default is not None
+            else []
+        )
+        fields = [disc_field, *case_fields, *default_field]
+        results.append(
+            MessageDefinition(name="/".join([*scope, defn.name]), definitions=fields)
+        )
     elif isinstance(defn, IDLModule):
         const_fields = [
-            _convert_constant(c, typedefs)
+            _convert_constant(c, typedefs, [*scope, defn.name], idl_map)
             for c in defn.definitions
             if isinstance(c, IDLConstant)
         ]
@@ -78,14 +97,18 @@ def _process_definition(
                     _process_definition(sub, [*scope, defn.name], typedefs, idl_map)
                 )
     elif isinstance(defn, IDLEnum):
-        fields = [_convert_constant(e, typedefs) for e in defn.enumerators]
+        fields = [
+            _convert_constant(e, typedefs, [*scope, defn.name], idl_map)
+            for e in defn.enumerators
+        ]
         results.append(
             MessageDefinition(name="/".join([*scope, defn.name]), definitions=fields)
         )
     elif isinstance(defn, IDLConstant):
         results.append(
             MessageDefinition(
-                name="/".join(scope), definitions=[_convert_constant(defn, typedefs)]
+                name="/".join(scope),
+                definitions=[_convert_constant(defn, typedefs, scope, idl_map)],
             )
         )
     # IDLTypedef does not directly produce MessageDefinitions here
@@ -98,18 +121,15 @@ def _convert_field(
     idl_map,
     scope: List[str],
 ) -> MessageDefinitionField:
-    t = field.type
+    t, _ = _resolve_scoped_type(field.type, scope, idl_map)
     array_lengths = list(field.array_lengths)
     is_sequence = field.is_sequence
     seq_bound = field.sequence_bound
     visited: set[str] = set()
-    while True:
-        key = t if t in typedefs else "::".join([*scope, t])
-        if key in visited or key not in typedefs:
-            break
-        visited.add(key)
-        td = typedefs[key]
-        t = td.type
+    while t in typedefs and t not in visited:
+        visited.add(t)
+        td = typedefs[t]
+        t, _ = _resolve_scoped_type(td.type, scope, idl_map)
         if td.array_lengths:
             array_lengths.extend(td.array_lengths)
         if td.is_sequence:
@@ -122,12 +142,7 @@ def _convert_field(
         )
     enum_type: Optional[str] = None
     is_complex = False
-    ref = idl_map.get(t)
-    if ref is None and "::" not in t:
-        scoped = "::".join([*scope, t])
-        ref = idl_map.get(scoped)
-        if ref is not None:
-            t = scoped
+    t, ref = _resolve_scoped_type(t, scope, idl_map)
     if isinstance(ref, IDLEnum):
         enum_type = _normalize_name(t)
         t = "uint32"
@@ -145,9 +160,13 @@ def _convert_field(
 
 
 def _convert_constant(
-    const: IDLConstant, typedefs: dict[str, IDLTypedef]
+    const: IDLConstant,
+    typedefs: dict[str, IDLTypedef],
+    scope: List[str],
+    idl_map,
 ) -> MessageDefinitionField:
-    t = _resolve_type(const.type, typedefs)
+    t, _ = _resolve_scoped_type(const.type, scope, idl_map)
+    t = _resolve_type(t, typedefs)
     return MessageDefinitionField(
         type=t,
         name=const.name,
@@ -179,6 +198,18 @@ def _collect_typedefs(
 
     collect(defs, scope)
     return typedefs
+
+
+def _resolve_scoped_type(name: str, scope: List[str], idl_map):
+    ref = idl_map.get(name)
+    if ref is not None or "::" in name:
+        return name, ref
+    for i in range(len(scope), -1, -1):
+        scoped = "::".join([*scope[:i], name])
+        ref = idl_map.get(scoped)
+        if ref is not None:
+            return scoped, ref
+    return name, None
 
 
 def _resolve_type(name: str, typedefs: dict[str, IDLTypedef]) -> str:
