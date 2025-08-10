@@ -14,6 +14,8 @@ from omgidl_parser.parse import Union as IDLUnion
 from omgidl_parser.parse import parse_idl
 from omgidl_parser.process import build_map
 
+UNION_DISCRIMINATOR_PROPERTY_KEY = "$discriminator"
+
 ROS2IDL_HEADER = re.compile(r"={80}\nIDL: [a-zA-Z][\w]*(?:\/[a-zA-Z][\w]*)*")
 
 
@@ -59,7 +61,24 @@ def _process_definition(
             MessageDefinition(name="/".join([*scope, defn.name]), definitions=fields)
         )
     elif isinstance(defn, IDLUnion):
-        raise ValueError("Unions are not supported in MessageDefinition type")
+        disc_field = _convert_field(
+            IDLField(name=UNION_DISCRIMINATOR_PROPERTY_KEY, type=defn.switch_type),
+            typedefs,
+            idl_map,
+            scope,
+        )
+        case_fields = [
+            _convert_field(c.field, typedefs, idl_map, scope) for c in defn.cases
+        ]
+        default_field = (
+            [_convert_field(defn.default, typedefs, idl_map, scope)]
+            if defn.default is not None
+            else []
+        )
+        fields = [disc_field, *case_fields, *default_field]
+        results.append(
+            MessageDefinition(name="/".join([*scope, defn.name]), definitions=fields)
+        )
     elif isinstance(defn, IDLModule):
         const_fields = [
             _convert_constant(c, typedefs)
@@ -124,10 +143,12 @@ def _convert_field(
     is_complex = False
     ref = idl_map.get(t)
     if ref is None and "::" not in t:
-        scoped = "::".join([*scope, t])
-        ref = idl_map.get(scoped)
-        if ref is not None:
-            t = scoped
+        for i in range(len(scope), -1, -1):
+            scoped = "::".join([*scope[:i], t])
+            ref = idl_map.get(scoped)
+            if ref is not None:
+                t = scoped
+                break
     if isinstance(ref, IDLEnum):
         enum_type = _normalize_name(t)
         t = "uint32"
