@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, Iterable, List, Optional, Union
+from typing import Any, Dict, Iterable, List, Optional, Union, cast
 
 from foxglove_message_definition import MessageDefinitionField
 
@@ -241,7 +241,9 @@ def _convert_union(
     cases: List[Case] = []
     for case in union.cases:
         field_def = _convert_field(case.field, typedefs, idl_map)
-        predicates = [p for p in case.predicates]  # already resolved values
+        # ``case.predicates`` may be typed broadly by the parser, but by this
+        # stage they should have been resolved to integers or booleans.
+        predicates = cast(List[int | bool], case.predicates)
         cases.append(Case(predicates=predicates, type=field_def))
 
     default_case = None
