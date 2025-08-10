@@ -295,14 +295,81 @@ class TestParseRos2idl(unittest.TestCase):
             ],
         )
 
-    def test_union_definition_not_supported(self):
+    def test_union_definition(self):
         schema = """
-        union MyUnion switch (uint8) {
-          case 0: string as_string;
+        module test_msgs {
+          enum TestDataType {
+            INT,
+            STR,
+            FLOAT
+          };
+          union TestData switch(TestDataType) {
+            case INT: long as_int;
+            case STR: string<255> as_string;
+            case FLOAT: double as_float;
+          };
+          module msg {
+            struct TestMessage {
+              string<64> label;
+              TestData data;
+            };
+          };
         };
         """
-        with self.assertRaises(ValueError):
-            parse_ros2idl(schema)
+        types = parse_ros2idl(schema)
+        self.assertEqual(
+            types,
+            [
+                MessageDefinition(
+                    name="test_msgs/TestDataType",
+                    definitions=[
+                        MessageDefinitionField(
+                            type="uint32",
+                            name="INT",
+                            isConstant=True,
+                            value=0,
+                            valueText="0",
+                        ),
+                        MessageDefinitionField(
+                            type="uint32",
+                            name="STR",
+                            isConstant=True,
+                            value=1,
+                            valueText="1",
+                        ),
+                        MessageDefinitionField(
+                            type="uint32",
+                            name="FLOAT",
+                            isConstant=True,
+                            value=2,
+                            valueText="2",
+                        ),
+                    ],
+                ),
+                MessageDefinition(
+                    name="test_msgs/TestData",
+                    definitions=[
+                        MessageDefinitionField(
+                            type="uint32",
+                            name="$discriminator",
+                            enumType="test_msgs/TestDataType",
+                        ),
+                        MessageDefinitionField(type="int32", name="as_int"),
+                        MessageDefinitionField(type="string", name="as_string"),
+                        MessageDefinitionField(type="float64", name="as_float"),
+                    ],
+                ),
+                MessageDefinition(
+                    name="test_msgs/msg/TestMessage",
+                    definitions=[
+                        MessageDefinitionField(type="string", name="label"),
+                        MessageDefinitionField(
+                            type="test_msgs/TestData", name="data", isComplex=True
+                        ),
+                    ],
+                ),
+            ],
+        )
 
     def test_multi_dimensional_array_not_supported(self):
         schema = """
