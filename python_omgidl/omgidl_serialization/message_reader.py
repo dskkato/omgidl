@@ -135,7 +135,7 @@ class MessageReader:
                         )
                     seq.append(s)
                 return seq, offset
-            if t in PRIMITIVE_SIZES:
+            elif t in PRIMITIVE_SIZES:
                 size = _primitive_size(t)
                 typecode = PRIMITIVE_FORMATS[t]
                 offset += _padding(offset, size)
@@ -149,16 +149,17 @@ class MessageReader:
                 ):
                     arr.byteswap()
                 return arr, offset
-            if field.type_info is None:
-                raise ValueError(f"Unrecognized struct or union type {t}")
-            seq_arr: List[Any] = []
-            for _ in range(length):
-                if isinstance(field.type_info, StructDeserializationInfo):
-                    msg, offset = self._read_struct(field.type_info, view, offset)
-                else:
-                    msg, offset = self._read_union(field.type_info, view, offset)
-                seq_arr.append(msg)
-            return seq_arr, offset
+            else:
+                if field.type_info is None:
+                    raise ValueError(f"Unrecognized struct or union type {t}")
+                seq_arr: List[Any] = []
+                for _ in range(length):
+                    if isinstance(field.type_info, StructDeserializationInfo):
+                        msg, offset = self._read_struct(field.type_info, view, offset)
+                    else:
+                        msg, offset = self._read_union(field.type_info, view, offset)
+                    seq_arr.append(msg)
+                return seq_arr, offset
 
         if t in ("string", "wstring"):
             offset += _padding(offset, 4)
@@ -230,7 +231,7 @@ class MessageReader:
                 text_arr.append(s)
             return text_arr, offset
 
-        if t in PRIMITIVE_SIZES:
+        elif t in PRIMITIVE_SIZES:
             size = _primitive_size(t)
             typecode = PRIMITIVE_FORMATS[t]
             offset += _padding(offset, size)
@@ -245,16 +246,17 @@ class MessageReader:
                 prim_arr.byteswap()
             return prim_arr, offset
 
-        if field.type_info is None:
-            raise ValueError(f"Unrecognized struct or union type {t}")
-        items: List[Any] = []
-        for _ in range(length):
-            if isinstance(field.type_info, StructDeserializationInfo):
-                msg, offset = self._read_struct(field.type_info, view, offset)
-            else:
-                msg, offset = self._read_union(field.type_info, view, offset)
-            items.append(msg)
-        return items, offset
+        else:
+            if field.type_info is None:
+                raise ValueError(f"Unrecognized struct or union type {t}")
+            items: List[Any] = []
+            for _ in range(length):
+                if isinstance(field.type_info, StructDeserializationInfo):
+                    msg, offset = self._read_struct(field.type_info, view, offset)
+                else:
+                    msg, offset = self._read_union(field.type_info, view, offset)
+                items.append(msg)
+            return items, offset
 
     def _read_union(
         self, info: UnionDeserializationInfo, view: memoryview, offset: int
