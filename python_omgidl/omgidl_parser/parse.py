@@ -61,12 +61,12 @@ type: sequence_type
     | BUILTIN_TYPE
     | scoped_name
 
-sequence_type: "sequence" "<" type ("," INT)? ">"
+sequence_type: "sequence" "<" type ("," const_sum)? ">"
 
 string_type: STRING_KW string_bound?
            | WSTRING_KW string_bound?
 
-string_bound: "<" INT ">"
+string_bound: "<" const_sum ">"
 
 scoped_name: NAME ("::" NAME)*
 
@@ -75,7 +75,7 @@ STRING_KW: "string"
 WSTRING_KW: "wstring"
 NAME: /[A-Za-z_][A-Za-z0-9_]*/
 
-array: ("[" INT "]")+
+array: ("[" const_sum "]")+
 
 semicolon: ";"
 
@@ -266,6 +266,8 @@ class _Transformer(Transformer):
     def sequence_type(self, items):
         inner = items[0]
         bound = items[1] if len(items) > 1 else None
+        if bound is not None:
+            bound = int(bound)
         return ("sequence", inner, bound)
 
     def string_type(self, items):
@@ -277,7 +279,7 @@ class _Transformer(Transformer):
 
     def string_bound(self, items):
         (value,) = items
-        return value
+        return int(value)
 
     def INT(self, token):
         return int(token)

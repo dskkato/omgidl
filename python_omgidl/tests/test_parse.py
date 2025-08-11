@@ -238,6 +238,21 @@ line3")
             ],
         )
 
+    def test_constant_sequence_bound(self):
+        schema = """
+        module t2_test_msgs {
+            const unsigned long DYNAMIC_ARRAY_BOUNDS = 10;
+            struct Bar {
+                sequence<char, DYNAMIC_ARRAY_BOUNDS> bounded_dynamic_array_values;
+            };
+        };
+        """
+        result = parse_idl(schema)
+        module = result[0]
+        struct = next(d for d in module.definitions if isinstance(d, Struct))
+        field = struct.fields[0]
+        self.assertEqual(field.sequence_bound, 10)
+
     def test_bounded_string_field(self):
         schema = """
         struct A {
