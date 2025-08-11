@@ -1,5 +1,6 @@
 import unittest
 
+from message_definition import AggregatedKind
 from omgidl_parser import (
     IDLModuleDefinition,
     IDLStructDefinition,
@@ -41,7 +42,7 @@ class TestProcess(unittest.TestCase):
 
         inner = by_name["outer::Inner"]
         self.assertIsInstance(inner, IDLStructDefinition)
-        self.assertEqual(inner.aggregatedKind, "struct")
+        self.assertEqual(inner.aggregatedKind, AggregatedKind.STRUCT)
         self.assertEqual(len(inner.definitions), 1)
         self.assertEqual(inner.definitions[0].name, "value")
         self.assertEqual(inner.definitions[0].type, "int32")
@@ -70,11 +71,11 @@ class TestProcess(unittest.TestCase):
         union_def = by_name["MyUnion"]
         self.assertIsInstance(union_def, IDLUnionDefinition)
         self.assertEqual(union_def.switchType, "uint32")
-        self.assertEqual(len(union_def.cases), 1)
-        self.assertEqual(union_def.cases[0].predicates, [0])
-        self.assertEqual(union_def.cases[0].type.type, "int32")
-        self.assertIsNotNone(union_def.defaultCase)
-        self.assertEqual(union_def.defaultCase.type, "outer::Inner")
+        self.assertEqual(len(union_def.definitions), 2)
+        self.assertEqual(union_def.definitions[0].casePredicates, [0])
+        self.assertEqual(union_def.definitions[0].type, "int32")
+        self.assertTrue(union_def.definitions[1].isDefaultCase)
+        self.assertEqual(union_def.definitions[1].type, "outer::Inner")
 
         top_module = by_name[""]
         self.assertIsInstance(top_module, IDLModuleDefinition)
