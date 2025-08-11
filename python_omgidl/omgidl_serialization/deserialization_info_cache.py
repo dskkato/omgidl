@@ -248,15 +248,19 @@ def _find_union(
     return None
 
 
-def _union_case_field(union_def: IDLUnion, discriminator: Any) -> Optional[Field]:
-    for case in union_def.cases:
+def _union_case_field(union_def: Any, discriminator: Any) -> Optional[Any]:
+    for case in getattr(union_def, "cases", []):
         predicates = getattr(case, "predicates", None)
-        if predicates is not None:
-            if discriminator in predicates:
-                return case.field
+        if predicates is not None and discriminator in predicates:
+            return getattr(case, "field", getattr(case, "type", None))
         value = getattr(case, "value", None)
         if value == discriminator:
-            return case.field
-    if union_def.default is not None:
-        return union_def.default
+            return getattr(case, "field", getattr(case, "type", None))
+    default_case = getattr(
+        union_def, "default", getattr(union_def, "defaultCase", None)
+    )
+    if default_case is not None:
+        return getattr(
+            default_case, "field", getattr(default_case, "type", default_case)
+        )
     return None

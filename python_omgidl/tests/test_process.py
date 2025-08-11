@@ -71,11 +71,12 @@ class TestProcess(unittest.TestCase):
         union_def = by_name["MyUnion"]
         self.assertIsInstance(union_def, IDLUnionDefinition)
         self.assertEqual(union_def.switchType, "uint32")
-        self.assertEqual(len(union_def.definitions), 2)
-        self.assertEqual(union_def.definitions[0].casePredicates, [0])
-        self.assertEqual(union_def.definitions[0].type, "int32")
-        self.assertTrue(union_def.definitions[1].isDefaultCase)
-        self.assertEqual(union_def.definitions[1].type, "outer::Inner")
+        self.assertEqual(len(union_def.cases), 1)
+        self.assertEqual(union_def.cases[0].predicates, [0])
+        self.assertEqual(union_def.cases[0].type.type, "int32")
+        self.assertIsNotNone(union_def.defaultCase)
+        assert union_def.defaultCase is not None
+        self.assertEqual(union_def.defaultCase.type, "outer::Inner")
 
         top_module = by_name[""]
         self.assertIsInstance(top_module, IDLModuleDefinition)

@@ -4,7 +4,12 @@ import re
 from dataclasses import replace
 from typing import List
 
-from message_definition import AggregatedKind, MessageDefinition, MessageDefinitionField
+from message_definition import (
+    AggregatedKind,
+    MessageDefinition,
+    MessageDefinitionField,
+    UnionCase,
+)
 from omgidl_parser.process import (
     IDLModuleDefinition,
     IDLStructDefinition,
@@ -54,19 +59,27 @@ def parse_ros2idl(message_definition: str) -> List[MessageDefinition]:
                 )
             )
         elif isinstance(defn, IDLUnionDefinition):
-            fields = []
-            for field in defn.definitions:
-                f = replace(field)
+            cases: List[UnionCase] = []
+            for case in defn.cases:
+                f = replace(case.type)
                 f.type = _normalize_name(f.type)
                 if f.enumType:
                     f.enumType = _normalize_name(f.enumType)
-                fields.append(f)
+                cases.append(UnionCase(predicates=case.predicates, type=f))
+            default_case = None
+            if defn.defaultCase is not None:
+                f = replace(defn.defaultCase)
+                f.type = _normalize_name(f.type)
+                if f.enumType:
+                    f.enumType = _normalize_name(f.enumType)
+                default_case = f
             message_defs.append(
                 MessageDefinition(
                     name=_normalize_name(defn.name),
                     aggregatedKind=AggregatedKind.UNION,
                     switchType=_normalize_name(defn.switchType),
-                    definitions=fields,
+                    cases=cases,
+                    defaultCase=default_case,
                 )
             )
 
