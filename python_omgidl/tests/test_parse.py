@@ -469,6 +469,90 @@ line3")
             ],
         )
 
+    def test_nested_modules_with_union_field(self):
+        schema = """
+        module test_msgs {
+          enum FooEnum {
+            ENUMERATOR1,
+            ENUMERATOR2
+          };
+
+          union FooUnion switch(FooEnum) {
+          case ENUMERATOR1:
+            int32 int_value;
+          case ENUMERATOR2:
+            string<32> string_value;
+          };
+
+          module msg {
+            @verbatim (language="comment", text=
+            "This is a comment about the Bar message")
+            struct Bar {
+               FooUnion union_value;
+            };
+          };
+        };
+        """
+        result = parse_idl(schema)
+        self.assertEqual(
+            result,
+            [
+                Module(
+                    name="test_msgs",
+                    definitions=[
+                        Enum(
+                            name="FooEnum",
+                            enumerators=[
+                                Constant(name="ENUMERATOR1", type="uint32", value=0),
+                                Constant(name="ENUMERATOR2", type="uint32", value=1),
+                            ],
+                        ),
+                        Union(
+                            name="FooUnion",
+                            switch_type="test_msgs::FooEnum",
+                            cases=[
+                                UnionCase(
+                                    predicates=[0],
+                                    field=Field(name="int_value", type="int32"),
+                                ),
+                                UnionCase(
+                                    predicates=[1],
+                                    field=Field(
+                                        name="string_value",
+                                        type="string",
+                                        string_upper_bound=32,
+                                    ),
+                                ),
+                            ],
+                        ),
+                        Module(
+                            name="msg",
+                            definitions=[
+                                Struct(
+                                    name="Bar",
+                                    fields=[
+                                        Field(
+                                            name="union_value",
+                                            type="test_msgs::FooUnion",
+                                        )
+                                    ],
+                                    annotations={
+                                        "verbatim": {
+                                            "language": "comment",
+                                            "text": (
+                                                "This is a comment about the "
+                                                "Bar message"
+                                            ),
+                                        }
+                                    },
+                                )
+                            ],
+                        ),
+                    ],
+                )
+            ],
+        )
+
     def test_skip_import_and_include(self):
         schema = """
         import "foo.idl";

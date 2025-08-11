@@ -270,7 +270,10 @@ class _Transformer(Transformer):
             try:
                 bound = int(bound)
             except ValueError:
-                raise ValueError(f"Invalid sequence bound value '{bound}' in IDL. Expected an integer.")
+                raise ValueError(
+                    f"Invalid sequence bound value '{bound}'"
+                    " in IDL. Expected an integer."
+                )
         return ("sequence", inner, bound)
 
     def string_type(self, items):
