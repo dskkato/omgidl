@@ -282,7 +282,10 @@ class _Transformer(Transformer):
 
     def string_bound(self, items):
         (value,) = items
-        return int(value)
+        try:
+            return int(value)
+        except ValueError:
+            raise ValueError(f"Invalid string bound value: {value!r}")
 
     def INT(self, token):
         return int(token)
