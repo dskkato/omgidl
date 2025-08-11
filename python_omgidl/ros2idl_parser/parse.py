@@ -124,15 +124,17 @@ def _convert_field(
     idl_map: IDLMap,
     scope: List[str],
 ) -> MessageDefinitionField:
-    t, _ = _resolve_scoped_type(field.type, scope, idl_map)
+    resolved_type, _ = _resolve_scoped_type(field.type, scope, idl_map)
     array_lengths = list(field.array_lengths)
     is_sequence = field.is_sequence
     seq_bound = field.sequence_bound
     visited: set[str] = set()
-    while t in typedefs and t not in visited:
-        visited.add(t)
-        td = typedefs[t]
-        t, _ = _resolve_scoped_type(td.type, scope, idl_map)
+    current_type = resolved_type
+    while current_type in typedefs and current_type not in visited:
+        visited.add(current_type)
+        td = typedefs[current_type]
+        next_type, _ = _resolve_scoped_type(td.type, scope, idl_map)
+        current_type = next_type
         if td.array_lengths:
             array_lengths.extend(td.array_lengths)
         if td.is_sequence:
@@ -145,14 +147,14 @@ def _convert_field(
         )
     enum_type: Optional[str] = None
     is_complex = False
-    t, ref = _resolve_scoped_type(t, scope, idl_map)
+    final_type, ref = _resolve_scoped_type(current_type, scope, idl_map)
     if isinstance(ref, IDLEnum):
-        enum_type = _normalize_name(t)
-        t = "uint32"
+        enum_type = _normalize_name(final_type)
+        final_type = "uint32"
     elif isinstance(ref, (IDLStruct, IDLUnion)):
         is_complex = True
     return MessageDefinitionField(
-        type=t,
+        type=final_type,
         name=field.name,
         isComplex=is_complex,
         enumType=enum_type,
