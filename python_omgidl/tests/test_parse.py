@@ -485,13 +485,13 @@ line3")
           };
 
           module msg {
-              @verbatim (language="comment", text=
-              "This is a comment about the Bar message")
-              struct Bar {
+            @verbatim (language="comment", text=
+            "This is a comment about the Bar message")
+            struct Bar {
                FooUnion union_value;
-               };
             };
           };
+        };
         """
         result = parse_idl(schema)
         self.assertEqual(
