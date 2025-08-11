@@ -29,62 +29,62 @@ def parse_ros2idl(message_definition: str) -> List[MessageDefinition]:
 
     message_defs: List[MessageDefinition] = []
     for defn in idl_defs:
-        if isinstance(defn, IDLStructDefinition):
-            fields: List[MessageDefinitionField] = []
-            for field in defn.definitions:
-                f = replace(field)
-                f.type = _normalize_name(f.type)
-                if f.enumType:
-                    f.enumType = _normalize_name(f.enumType)
-                fields.append(f)
-            message_defs.append(
-                MessageDefinition(
-                    name=_normalize_name(defn.name),
-                    definitions=fields,
-                    aggregatedKind=AggregatedKind.STRUCT,
+        match defn:
+            case IDLStructDefinition():
+                fields: List[MessageDefinitionField] = []
+                for field in defn.definitions:
+                    f = replace(field)
+                    f.type = _normalize_name(f.type)
+                    if f.enumType:
+                        f.enumType = _normalize_name(f.enumType)
+                    fields.append(f)
+                message_defs.append(
+                    MessageDefinition(
+                        name=_normalize_name(defn.name),
+                        definitions=fields,
+                        aggregatedKind=AggregatedKind.STRUCT,
+                    )
                 )
-            )
-        elif isinstance(defn, IDLModuleDefinition):
-            fields = []
-            for field in defn.definitions:
-                f = replace(field)
-                f.type = _normalize_name(f.type)
-                if f.enumType:
-                    f.enumType = _normalize_name(f.enumType)
-                fields.append(f)
-            message_defs.append(
-                MessageDefinition(
-                    name=_normalize_name(defn.name),
-                    definitions=fields,
-                    aggregatedKind=AggregatedKind.MODULE,
+            case IDLModuleDefinition():
+                fields = []
+                for field in defn.definitions:
+                    f = replace(field)
+                    f.type = _normalize_name(f.type)
+                    if f.enumType:
+                        f.enumType = _normalize_name(f.enumType)
+                    fields.append(f)
+                message_defs.append(
+                    MessageDefinition(
+                        name=_normalize_name(defn.name),
+                        definitions=fields,
+                        aggregatedKind=AggregatedKind.MODULE,
+                    )
                 )
-            )
-        elif isinstance(defn, IDLUnionDefinition):
-            cases: List[Case] = []
-            for c in defn.cases:
-                field = replace(c.type)
-                field.type = _normalize_name(field.type)
-                if field.enumType:
-                    field.enumType = _normalize_name(field.enumType)
-                cases.append(Case(predicates=c.predicates, type=field))
-            default_case = None
-            if defn.defaultCase is not None:
-                default_case = replace(defn.defaultCase)
-                default_case.type = _normalize_name(default_case.type)
-                if default_case.enumType:
-                    default_case.enumType = _normalize_name(default_case.enumType)
-            message_defs.append(
-                MessageDefinition(
-                    name=_normalize_name(defn.name),
-                    aggregatedKind=AggregatedKind.UNION,
-                    definitions=UnionDefinition(
-                        switchType=_normalize_name(defn.switchType),
-                        cases=cases,
-                        defaultCase=default_case,
-                    ),
+            case IDLUnionDefinition():
+                cases: List[Case] = []
+                for c in defn.cases:
+                    field = replace(c.type)
+                    field.type = _normalize_name(field.type)
+                    if field.enumType:
+                        field.enumType = _normalize_name(field.enumType)
+                    cases.append(Case(predicates=c.predicates, type=field))
+                default_case = None
+                if defn.defaultCase is not None:
+                    default_case = replace(defn.defaultCase)
+                    default_case.type = _normalize_name(default_case.type)
+                    if default_case.enumType:
+                        default_case.enumType = _normalize_name(default_case.enumType)
+                message_defs.append(
+                    MessageDefinition(
+                        name=_normalize_name(defn.name),
+                        aggregatedKind=AggregatedKind.UNION,
+                        definitions=UnionDefinition(
+                            switchType=_normalize_name(defn.switchType),
+                            cases=cases,
+                            defaultCase=default_case,
+                        ),
+                    )
                 )
-            )
-
     for msg in message_defs:
         if msg.name in (
             "builtin_interfaces/msg/Time",
