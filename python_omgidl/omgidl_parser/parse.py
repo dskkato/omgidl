@@ -267,7 +267,10 @@ class _Transformer(Transformer):
         inner = items[0]
         bound = items[1] if len(items) > 1 else None
         if bound is not None:
-            bound = int(bound)
+            try:
+                bound = int(bound)
+            except ValueError:
+                raise ValueError(f"Invalid sequence bound value '{bound}' in IDL. Expected an integer.")
         return ("sequence", inner, bound)
 
     def string_type(self, items):
