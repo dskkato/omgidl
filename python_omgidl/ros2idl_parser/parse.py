@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import List, Optional
+from typing import List, Optional, TypeAlias
 
 from foxglove_message_definition import MessageDefinition, MessageDefinitionField
 from omgidl_parser.parse import Constant as IDLConstant
@@ -13,6 +13,11 @@ from omgidl_parser.parse import Typedef as IDLTypedef
 from omgidl_parser.parse import Union as IDLUnion
 from omgidl_parser.parse import parse_idl
 from omgidl_parser.process import build_map
+
+IDLDefinition: TypeAlias = (
+    IDLStruct | IDLModule | IDLConstant | IDLEnum | IDLUnion | IDLTypedef
+)
+IDLMap: TypeAlias = dict[str, IDLDefinition]
 
 UNION_DISCRIMINATOR_PROPERTY_KEY = "$discriminator"
 
@@ -49,10 +54,10 @@ def parse_ros2idl(message_definition: str) -> List[MessageDefinition]:
 
 
 def _process_definition(
-    defn: IDLStruct | IDLModule | IDLConstant | IDLEnum | IDLUnion | IDLTypedef,
+    defn: IDLDefinition,
     scope: List[str],
     typedefs: dict[str, IDLTypedef],
-    idl_map,
+    idl_map: IDLMap,
 ) -> List[MessageDefinition]:
     results: List[MessageDefinition] = []
     if isinstance(defn, IDLStruct):
@@ -116,7 +121,7 @@ def _process_definition(
 def _convert_field(
     field: IDLField,
     typedefs: dict[str, IDLTypedef],
-    idl_map,
+    idl_map: IDLMap,
     scope: List[str],
 ) -> MessageDefinitionField:
     t, _ = _resolve_scoped_type(field.type, scope, idl_map)
@@ -161,7 +166,7 @@ def _convert_constant(
     const: IDLConstant,
     typedefs: dict[str, IDLTypedef],
     scope: List[str],
-    idl_map,
+    idl_map: IDLMap,
 ) -> MessageDefinitionField:
     t, _ = _resolve_scoped_type(const.type, scope, idl_map)
     t = _resolve_type(t, typedefs)
@@ -198,7 +203,9 @@ def _collect_typedefs(
     return typedefs
 
 
-def _resolve_scoped_type(name: str, scope: List[str], idl_map):
+def _resolve_scoped_type(
+    name: str, scope: List[str], idl_map: IDLMap
+) -> tuple[str, IDLDefinition | None]:
     ref = idl_map.get(name)
     if ref is not None or "::" in name:
         return name, ref
