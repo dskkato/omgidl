@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Dict, Iterable, List, Optional, Union, cast
 
-from message_definition import MessageDefinitionField
+from message_definition import AggregatedKind, MessageDefinitionField
 
 from .parse import Constant, Enum, Field, Module, Struct, Typedef
 from .parse import Union as IDLUnion
@@ -13,16 +13,10 @@ from .parse import Union as IDLUnion
 
 
 @dataclass
-class Case:
-    predicates: List[Union[int, bool]]
-    type: MessageDefinitionField
-
-
-@dataclass
 class IDLStructDefinition:
     name: str
     definitions: List[MessageDefinitionField]
-    aggregatedKind: str = "struct"
+    aggregatedKind: AggregatedKind = AggregatedKind.STRUCT
     annotations: Optional[Dict[str, Any]] = None
 
 
@@ -30,7 +24,7 @@ class IDLStructDefinition:
 class IDLModuleDefinition:
     name: str
     definitions: List[MessageDefinitionField]
-    aggregatedKind: str = "module"
+    aggregatedKind: AggregatedKind = AggregatedKind.MODULE
     annotations: Optional[Dict[str, Any]] = None
 
 
@@ -38,9 +32,8 @@ class IDLModuleDefinition:
 class IDLUnionDefinition:
     name: str
     switchType: str
-    cases: List[Case]
-    aggregatedKind: str = "union"
-    defaultCase: Optional[MessageDefinitionField] = None
+    definitions: List[MessageDefinitionField]
+    aggregatedKind: AggregatedKind = AggregatedKind.UNION
     annotations: Optional[Dict[str, Any]] = None
 
 
@@ -188,6 +181,10 @@ def _convert_field(
     array_lengths = list(field.array_lengths)
     if td_arrays:
         array_lengths.extend(td_arrays)
+    if len(array_lengths) > 1:
+        raise ValueError(
+            "Multi-dimensional arrays are not supported in MessageDefinition type"
+        )
     is_sequence = field.is_sequence or td_is_seq
     sequence_bound = field.sequence_bound if field.is_sequence else td_seq_bound
     upper_bound = (
@@ -238,23 +235,24 @@ def _convert_union(
     if isinstance(ref, Enum):
         switch_type = "uint32"
 
-    cases: List[Case] = []
+    fields: List[MessageDefinitionField] = []
     for case in union.cases:
         field_def = _convert_field(case.field, typedefs, idl_map)
         # ``case.predicates`` may be typed broadly by the parser, but by this
         # stage they should have been resolved to integers or booleans.
         predicates = cast(List[int | bool], case.predicates)
-        cases.append(Case(predicates=predicates, type=field_def))
+        field_def.casePredicates = predicates
+        fields.append(field_def)
 
-    default_case = None
     if union.default is not None:
-        default_case = _convert_field(union.default, typedefs, idl_map)
+        default_field = _convert_field(union.default, typedefs, idl_map)
+        default_field.isDefaultCase = True
+        fields.append(default_field)
 
     return IDLUnionDefinition(
         name=name,
         switchType=switch_type,
-        cases=cases,
-        defaultCase=default_case,
+        definitions=fields,
         annotations=union.annotations or None,
     )
 
@@ -333,7 +331,6 @@ __all__ = [
     "IDLStructDefinition",
     "IDLModuleDefinition",
     "IDLUnionDefinition",
-    "Case",
     "IDLMessageDefinition",
     "build_map",
     "to_idl_message_definitions",

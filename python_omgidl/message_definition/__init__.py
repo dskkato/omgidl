@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from dataclasses import field as dataclass_field
+from enum import Enum
 from typing import List, Optional, Sequence, Union
 
 # Type aliases matching the TypeScript package
@@ -35,6 +36,14 @@ class MessageDefinitionField:
     upperBound: Optional[int] = None
     arrayUpperBound: Optional[int] = None
     defaultValue: DefaultValue = None
+    casePredicates: Optional[List[Union[int, bool]]] = None
+    isDefaultCase: bool = False
+
+
+class AggregatedKind(Enum):
+    MODULE = "module"
+    STRUCT = "struct"
+    UNION = "union"
 
 
 @dataclass
@@ -42,6 +51,8 @@ class MessageDefinition:
     """A message definition containing an optional name and a list of fields."""
 
     name: Optional[str] = None
+    aggregatedKind: AggregatedKind = AggregatedKind.STRUCT
+    switchType: Optional[str] = None
     definitions: List[MessageDefinitionField] = dataclass_field(default_factory=list)
 
 
@@ -54,6 +65,7 @@ def is_msg_def_equal(a: MessageDefinition, b: MessageDefinition) -> bool:
 __all__ = [
     "ConstantValue",
     "DefaultValue",
+    "AggregatedKind",
     "MessageDefinition",
     "MessageDefinitionField",
     "is_msg_def_equal",

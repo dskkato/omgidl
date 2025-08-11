@@ -12,7 +12,6 @@ from .parse import (
     parse_idl,
 )
 from .process import (
-    Case,
     IDLMessageDefinition,
     IDLModuleDefinition,
     IDLStructDefinition,
@@ -36,7 +35,6 @@ __all__ = [
     "IDLStructDefinition",
     "IDLModuleDefinition",
     "IDLUnionDefinition",
-    "Case",
     "IDLMessageDefinition",
     "build_map",
     "to_idl_message_definitions",
