@@ -80,30 +80,28 @@ def _process_definition(
             MessageDefinition(name="/".join([*scope, defn.name]), definitions=fields)
         )
     elif isinstance(defn, IDLModule):
+        module_scope = [*scope, defn.name]
         const_fields = [
-            _convert_constant(c, typedefs, [*scope, defn.name], idl_map)
+            _convert_constant(c, typedefs, module_scope, idl_map)
             for c in defn.definitions
             if isinstance(c, IDLConstant)
         ]
         if const_fields:
             results.append(
-                MessageDefinition(
-                    name="/".join([*scope, defn.name]), definitions=const_fields
-                )
+                MessageDefinition(name="/".join(module_scope), definitions=const_fields)
             )
         for sub in defn.definitions:
             if isinstance(sub, (IDLModule, IDLStruct, IDLUnion, IDLEnum)):
                 results.extend(
-                    _process_definition(sub, [*scope, defn.name], typedefs, idl_map)
+                    _process_definition(sub, module_scope, typedefs, idl_map)
                 )
     elif isinstance(defn, IDLEnum):
+        enum_scope = [*scope, defn.name]
         fields = [
-            _convert_constant(e, typedefs, [*scope, defn.name], idl_map)
+            _convert_constant(e, typedefs, enum_scope, idl_map)
             for e in defn.enumerators
         ]
-        results.append(
-            MessageDefinition(name="/".join([*scope, defn.name]), definitions=fields)
-        )
+        results.append(MessageDefinition(name="/".join(enum_scope), definitions=fields))
     elif isinstance(defn, IDLConstant):
         results.append(
             MessageDefinition(
