@@ -1,5 +1,6 @@
 import unittest
 
+from message_definition import AggregatedKind
 from omgidl_parser import (
     IDLModuleDefinition,
     IDLStructDefinition,
@@ -41,7 +42,7 @@ class TestProcess(unittest.TestCase):
 
         inner = by_name["outer::Inner"]
         self.assertIsInstance(inner, IDLStructDefinition)
-        self.assertEqual(inner.aggregatedKind, "struct")
+        self.assertEqual(inner.aggregatedKind, AggregatedKind.STRUCT)
         self.assertEqual(len(inner.definitions), 1)
         self.assertEqual(inner.definitions[0].name, "value")
         self.assertEqual(inner.definitions[0].type, "int32")

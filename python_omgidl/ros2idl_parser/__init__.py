@@ -1,5 +1,18 @@
-from message_definition import MessageDefinition, MessageDefinitionField
+from message_definition import (
+    AggregatedKind,
+    Case,
+    MessageDefinition,
+    MessageDefinitionField,
+    UnionDefinition,
+)
 
 from .parse import parse_ros2idl
 
-__all__ = ["parse_ros2idl", "MessageDefinition", "MessageDefinitionField"]
+__all__ = [
+    "parse_ros2idl",
+    "AggregatedKind",
+    "MessageDefinition",
+    "MessageDefinitionField",
+    "UnionDefinition",
+    "Case",
+]

@@ -1,6 +1,13 @@
 import unittest
 
-from ros2idl_parser import MessageDefinition, MessageDefinitionField, parse_ros2idl
+from ros2idl_parser import (
+    AggregatedKind,
+    Case,
+    MessageDefinition,
+    MessageDefinitionField,
+    UnionDefinition,
+    parse_ros2idl,
+)
 
 
 class TestParseRos2idl(unittest.TestCase):
@@ -23,6 +30,7 @@ class TestParseRos2idl(unittest.TestCase):
             [
                 MessageDefinition(
                     name="rosidl_parser/action/MyAction_Goal_Constants",
+                    aggregatedKind=AggregatedKind.MODULE,
                     definitions=[
                         MessageDefinitionField(
                             type="int16",
@@ -216,6 +224,7 @@ class TestParseRos2idl(unittest.TestCase):
             [
                 MessageDefinition(
                     name="COLORS",
+                    aggregatedKind=AggregatedKind.MODULE,
                     definitions=[
                         MessageDefinitionField(
                             type="uint32",
@@ -267,6 +276,7 @@ class TestParseRos2idl(unittest.TestCase):
             [
                 MessageDefinition(
                     name="colors/Palette",
+                    aggregatedKind=AggregatedKind.MODULE,
                     definitions=[
                         MessageDefinitionField(
                             type="uint32",
@@ -322,6 +332,7 @@ class TestParseRos2idl(unittest.TestCase):
             [
                 MessageDefinition(
                     name="test_msgs/TestDataType",
+                    aggregatedKind=AggregatedKind.MODULE,
                     definitions=[
                         MessageDefinitionField(
                             type="uint32",
@@ -348,21 +359,41 @@ class TestParseRos2idl(unittest.TestCase):
                 ),
                 MessageDefinition(
                     name="test_msgs/TestData",
-                    definitions=[
-                        MessageDefinitionField(
-                            type="uint32",
-                            name="$discriminator",
-                            enumType="test_msgs/TestDataType",
-                        ),
-                        MessageDefinitionField(type="int32", name="as_int"),
-                        MessageDefinitionField(type="string", name="as_string"),
-                        MessageDefinitionField(type="float64", name="as_float"),
-                    ],
+                    aggregatedKind=AggregatedKind.UNION,
+                    definitions=UnionDefinition(
+                        switchType="uint32",
+                        cases=[
+                            Case(
+                                predicates=[0],
+                                type=MessageDefinitionField(
+                                    type="int32",
+                                    name="as_int",
+                                ),
+                            ),
+                            Case(
+                                predicates=[1],
+                                type=MessageDefinitionField(
+                                    type="string",
+                                    name="as_string",
+                                    upperBound=255,
+                                ),
+                            ),
+                            Case(
+                                predicates=[2],
+                                type=MessageDefinitionField(
+                                    type="float64",
+                                    name="as_float",
+                                ),
+                            ),
+                        ],
+                    ),
                 ),
                 MessageDefinition(
                     name="test_msgs/msg/TestMessage",
                     definitions=[
-                        MessageDefinitionField(type="string", name="label"),
+                        MessageDefinitionField(
+                            type="string", name="label", upperBound=64
+                        ),
                         MessageDefinitionField(
                             type="test_msgs/TestData", name="data", isComplex=True
                         ),
@@ -390,6 +421,7 @@ class TestParseRos2idl(unittest.TestCase):
             [
                 MessageDefinition(
                     name="test_msgs/ShapeType",
+                    aggregatedKind=AggregatedKind.MODULE,
                     definitions=[
                         MessageDefinitionField(
                             type="uint32",
@@ -409,15 +441,23 @@ class TestParseRos2idl(unittest.TestCase):
                 ),
                 MessageDefinition(
                     name="test_msgs/Shape",
-                    definitions=[
-                        MessageDefinitionField(
-                            type="uint32",
-                            name="$discriminator",
-                            enumType="test_msgs/ShapeType",
+                    aggregatedKind=AggregatedKind.UNION,
+                    definitions=UnionDefinition(
+                        switchType="uint32",
+                        cases=[
+                            Case(
+                                predicates=[0],
+                                type=MessageDefinitionField(
+                                    type="float64",
+                                    name="radius",
+                                ),
+                            )
+                        ],
+                        defaultCase=MessageDefinitionField(
+                            type="float64",
+                            name="side",
                         ),
-                        MessageDefinitionField(type="float64", name="radius"),
-                        MessageDefinitionField(type="float64", name="side"),
-                    ],
+                    ),
                 ),
             ],
         )

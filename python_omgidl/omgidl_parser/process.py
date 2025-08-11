@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Dict, Iterable, List, Optional, Union, cast
 
-from message_definition import MessageDefinitionField
+from message_definition import AggregatedKind, Case, MessageDefinitionField
 
 from .parse import Constant, Enum, Field, Module, Struct, Typedef
 from .parse import Union as IDLUnion
@@ -13,16 +13,10 @@ from .parse import Union as IDLUnion
 
 
 @dataclass
-class Case:
-    predicates: List[Union[int, bool]]
-    type: MessageDefinitionField
-
-
-@dataclass
 class IDLStructDefinition:
     name: str
     definitions: List[MessageDefinitionField]
-    aggregatedKind: str = "struct"
+    aggregatedKind: AggregatedKind = AggregatedKind.STRUCT
     annotations: Optional[Dict[str, Any]] = None
 
 
@@ -30,7 +24,7 @@ class IDLStructDefinition:
 class IDLModuleDefinition:
     name: str
     definitions: List[MessageDefinitionField]
-    aggregatedKind: str = "module"
+    aggregatedKind: AggregatedKind = AggregatedKind.MODULE
     annotations: Optional[Dict[str, Any]] = None
 
 
@@ -39,7 +33,7 @@ class IDLUnionDefinition:
     name: str
     switchType: str
     cases: List[Case]
-    aggregatedKind: str = "union"
+    aggregatedKind: AggregatedKind = AggregatedKind.UNION
     defaultCase: Optional[MessageDefinitionField] = None
     annotations: Optional[Dict[str, Any]] = None
 
@@ -188,6 +182,10 @@ def _convert_field(
     array_lengths = list(field.array_lengths)
     if td_arrays:
         array_lengths.extend(td_arrays)
+    if len(array_lengths) > 1:
+        raise ValueError(
+            "Multi-dimensional arrays are not supported in MessageDefinition type"
+        )
     is_sequence = field.is_sequence or td_is_seq
     sequence_bound = field.sequence_bound if field.is_sequence else td_seq_bound
     upper_bound = (
