@@ -19,6 +19,7 @@ IDLDefinition: TypeAlias = (
 )
 IDLMap: TypeAlias = dict[str, IDLDefinition]
 
+# Field name used for union discriminators in generated message definitions
 UNION_DISCRIMINATOR_PROPERTY_KEY = "$discriminator"
 
 ROS2IDL_HEADER = re.compile(r"={80}\nIDL: [a-zA-Z][\w]*(?:\/[a-zA-Z][\w]*)*")
@@ -66,23 +67,22 @@ def _process_definition(
             MessageDefinition(name="/".join([*scope, defn.name]), definitions=fields)
         )
     elif isinstance(defn, IDLUnion):
-        disc_field = _convert_field(
-            IDLField(name=UNION_DISCRIMINATOR_PROPERTY_KEY, type=defn.switch_type),
-            typedefs,
-            idl_map,
-            scope,
-        )
-        case_fields = [
-            _convert_field(c.field, typedefs, idl_map, scope) for c in defn.cases
+        union_scope = [*scope, defn.name]
+        fields = [
+            _convert_field(
+                IDLField(name=UNION_DISCRIMINATOR_PROPERTY_KEY, type=defn.switch_type),
+                typedefs,
+                idl_map,
+                scope,
+            )
         ]
-        default_field = (
-            [_convert_field(defn.default, typedefs, idl_map, scope)]
-            if defn.default is not None
-            else []
+        fields.extend(
+            _convert_field(c.field, typedefs, idl_map, scope) for c in defn.cases
         )
-        fields = [disc_field, *case_fields, *default_field]
+        if defn.default is not None:
+            fields.append(_convert_field(defn.default, typedefs, idl_map, scope))
         results.append(
-            MessageDefinition(name="/".join([*scope, defn.name]), definitions=fields)
+            MessageDefinition(name="/".join(union_scope), definitions=fields)
         )
     elif isinstance(defn, IDLModule):
         module_scope = [*scope, defn.name]
@@ -146,11 +146,11 @@ def _convert_field(
         )
     enum_type: Optional[str] = None
     is_complex = False
-    final_type, ref = _resolve_scoped_type(current_type, scope, idl_map)
-    if isinstance(ref, IDLEnum):
+    final_type, definition = _resolve_scoped_type(current_type, scope, idl_map)
+    if isinstance(definition, IDLEnum):
         enum_type = _normalize_name(final_type)
         final_type = "uint32"
-    elif isinstance(ref, (IDLStruct, IDLUnion)):
+    elif isinstance(definition, (IDLStruct, IDLUnion)):
         is_complex = True
     return MessageDefinitionField(
         type=final_type,
@@ -185,15 +185,11 @@ def _normalize_name(name: str) -> str:
 
 
 def _collect_typedefs(
-    defs: List[IDLStruct | IDLModule | IDLConstant | IDLEnum | IDLTypedef | IDLUnion],
-    scope: List[str],
+    defs: List[IDLDefinition], scope: List[str]
 ) -> dict[str, IDLTypedef]:
     typedefs: dict[str, IDLTypedef] = {}
 
-    def collect(
-        ds: List[IDLStruct | IDLModule | IDLConstant | IDLEnum | IDLTypedef | IDLUnion],
-        sc: List[str],
-    ):
+    def collect(ds: List[IDLDefinition], sc: List[str]):
         for d in ds:
             if isinstance(d, IDLTypedef):
                 typedefs["::".join([*sc, d.name])] = d

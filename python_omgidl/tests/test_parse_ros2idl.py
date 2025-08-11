@@ -371,6 +371,57 @@ class TestParseRos2idl(unittest.TestCase):
             ],
         )
 
+    def test_union_with_default_case(self):
+        schema = """\
+        module test_msgs {
+          enum ShapeType {
+            SPHERE,
+            BOX
+          };
+          union Shape switch(ShapeType) {
+            case SPHERE: double radius;
+            default: double side;
+          };
+        };
+        """
+        types = parse_ros2idl(schema)
+        self.assertEqual(
+            types,
+            [
+                MessageDefinition(
+                    name="test_msgs/ShapeType",
+                    definitions=[
+                        MessageDefinitionField(
+                            type="uint32",
+                            name="SPHERE",
+                            isConstant=True,
+                            value=0,
+                            valueText="0",
+                        ),
+                        MessageDefinitionField(
+                            type="uint32",
+                            name="BOX",
+                            isConstant=True,
+                            value=1,
+                            valueText="1",
+                        ),
+                    ],
+                ),
+                MessageDefinition(
+                    name="test_msgs/Shape",
+                    definitions=[
+                        MessageDefinitionField(
+                            type="uint32",
+                            name="$discriminator",
+                            enumType="test_msgs/ShapeType",
+                        ),
+                        MessageDefinitionField(type="float64", name="radius"),
+                        MessageDefinitionField(type="float64", name="side"),
+                    ],
+                ),
+            ],
+        )
+
     def test_multi_dimensional_array_not_supported(self):
         schema = """
         struct MultiArray { int32 data[3][5]; };
