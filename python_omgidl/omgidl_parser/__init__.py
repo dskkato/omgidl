@@ -1,4 +1,4 @@
-from foxglove_message_definition import MessageDefinitionField
+from message_definition import MessageDefinitionField
 
 from .parse import (
     Constant,

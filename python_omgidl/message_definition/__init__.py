@@ -45,9 +45,16 @@ class MessageDefinition:
     definitions: List[MessageDefinitionField] = dataclass_field(default_factory=list)
 
 
+def is_msg_def_equal(a: MessageDefinition, b: MessageDefinition) -> bool:
+    """Return whether two MessageDefinition instances are equal."""
+
+    return a == b
+
+
 __all__ = [
     "ConstantValue",
     "DefaultValue",
     "MessageDefinition",
     "MessageDefinitionField",
+    "is_msg_def_equal",
 ]
