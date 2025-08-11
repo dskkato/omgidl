@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Dict, Iterable, List, Optional, Union, cast
 
-from foxglove_message_definition import MessageDefinitionField
+from message_definition import MessageDefinitionField
 
 from .parse import Constant, Enum, Field, Module, Struct, Typedef
 from .parse import Union as IDLUnion

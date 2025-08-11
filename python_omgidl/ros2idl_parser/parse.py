@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from typing import List, Optional, TypeAlias
 
-from foxglove_message_definition import MessageDefinition, MessageDefinitionField
+from message_definition import MessageDefinition, MessageDefinitionField
 from omgidl_parser.parse import Constant as IDLConstant
 from omgidl_parser.parse import Enum as IDLEnum
 from omgidl_parser.parse import Field as IDLField
