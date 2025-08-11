@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Dict, Iterable, List, Optional, Union, cast
 
-from message_definition import AggregatedKind, MessageDefinitionField
+from message_definition import AggregatedKind, MessageDefinitionField, UnionCase
 
 from .parse import Constant, Enum, Field, Module, Struct, Typedef
 from .parse import Union as IDLUnion
@@ -32,7 +32,8 @@ class IDLModuleDefinition:
 class IDLUnionDefinition:
     name: str
     switchType: str
-    definitions: List[MessageDefinitionField]
+    cases: List[UnionCase]
+    defaultCase: Optional[MessageDefinitionField] = None
     aggregatedKind: AggregatedKind = AggregatedKind.UNION
     annotations: Optional[Dict[str, Any]] = None
 
@@ -235,24 +236,23 @@ def _convert_union(
     if isinstance(ref, Enum):
         switch_type = "uint32"
 
-    fields: List[MessageDefinitionField] = []
+    cases: List[UnionCase] = []
     for case in union.cases:
         field_def = _convert_field(case.field, typedefs, idl_map)
         # ``case.predicates`` may be typed broadly by the parser, but by this
         # stage they should have been resolved to integers or booleans.
         predicates = cast(List[int | bool], case.predicates)
-        field_def.casePredicates = predicates
-        fields.append(field_def)
+        cases.append(UnionCase(predicates=predicates, type=field_def))
 
+    default_field = None
     if union.default is not None:
         default_field = _convert_field(union.default, typedefs, idl_map)
-        default_field.isDefaultCase = True
-        fields.append(default_field)
 
     return IDLUnionDefinition(
         name=name,
         switchType=switch_type,
-        definitions=fields,
+        cases=cases,
+        defaultCase=default_field,
         annotations=union.annotations or None,
     )
 

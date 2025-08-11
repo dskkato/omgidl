@@ -4,6 +4,7 @@ from ros2idl_parser import (
     AggregatedKind,
     MessageDefinition,
     MessageDefinitionField,
+    UnionCase,
     parse_ros2idl,
 )
 
@@ -359,22 +360,28 @@ class TestParseRos2idl(unittest.TestCase):
                     name="test_msgs/TestData",
                     aggregatedKind=AggregatedKind.UNION,
                     switchType="uint32",
-                    definitions=[
-                        MessageDefinitionField(
-                            type="int32",
-                            name="as_int",
-                            casePredicates=[0],
+                    cases=[
+                        UnionCase(
+                            predicates=[0],
+                            type=MessageDefinitionField(
+                                type="int32",
+                                name="as_int",
+                            ),
                         ),
-                        MessageDefinitionField(
-                            type="string",
-                            name="as_string",
-                            upperBound=255,
-                            casePredicates=[1],
+                        UnionCase(
+                            predicates=[1],
+                            type=MessageDefinitionField(
+                                type="string",
+                                name="as_string",
+                                upperBound=255,
+                            ),
                         ),
-                        MessageDefinitionField(
-                            type="float64",
-                            name="as_float",
-                            casePredicates=[2],
+                        UnionCase(
+                            predicates=[2],
+                            type=MessageDefinitionField(
+                                type="float64",
+                                name="as_float",
+                            ),
                         ),
                     ],
                 ),
@@ -433,18 +440,19 @@ class TestParseRos2idl(unittest.TestCase):
                     name="test_msgs/Shape",
                     aggregatedKind=AggregatedKind.UNION,
                     switchType="uint32",
-                    definitions=[
-                        MessageDefinitionField(
-                            type="float64",
-                            name="radius",
-                            casePredicates=[0],
-                        ),
-                        MessageDefinitionField(
-                            type="float64",
-                            name="side",
-                            isDefaultCase=True,
-                        ),
+                    cases=[
+                        UnionCase(
+                            predicates=[0],
+                            type=MessageDefinitionField(
+                                type="float64",
+                                name="radius",
+                            ),
+                        )
                     ],
+                    defaultCase=MessageDefinitionField(
+                        type="float64",
+                        name="side",
+                    ),
                 ),
             ],
         )

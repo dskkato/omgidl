@@ -680,26 +680,32 @@ def _find_union(
     return None
 
 
-def _union_case_field(union_def: IDLUnion, discriminator: Any) -> Optional[Field]:
+def _union_case_field(union_def: Any, discriminator: Any) -> Optional[Any]:
     """Return the field matching ``discriminator`` for ``union_def``.
 
     The ``UnionCase`` objects produced by the parser changed from exposing a
-    ``value`` attribute to a ``predicates`` list. Support both styles so that
+    ``value`` attribute to a ``predicates`` list. Additionally, newer message
+    definition representations expose ``cases`` and ``defaultCase`` instead of
+    embedding case data on the fields themselves. Support both styles so that
     union handling works with either representation.
     """
 
-    for case in union_def.cases:
-        # Newer parser versions provide ``predicates`` with possible values.
+    for case in getattr(union_def, "cases", []):
+        # ``predicates`` with possible values (newer parser versions).
         predicates = getattr(case, "predicates", None)
-        if predicates is not None:
-            if discriminator in predicates:
-                return case.field
+        if predicates is not None and discriminator in predicates:
+            return getattr(case, "field", getattr(case, "type", None))
 
-        # Older parser versions exposed a single ``value`` attribute.
+        # ``value`` attribute from older parser versions.
         value = getattr(case, "value", None)
         if value == discriminator:
-            return case.field
+            return getattr(case, "field", getattr(case, "type", None))
 
-    if union_def.default is not None:
-        return union_def.default
+    default_case = getattr(
+        union_def, "default", getattr(union_def, "defaultCase", None)
+    )
+    if default_case is not None:
+        return getattr(
+            default_case, "field", getattr(default_case, "type", default_case)
+        )
     return None

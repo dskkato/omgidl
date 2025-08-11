@@ -36,8 +36,14 @@ class MessageDefinitionField:
     upperBound: Optional[int] = None
     arrayUpperBound: Optional[int] = None
     defaultValue: DefaultValue = None
-    casePredicates: Optional[List[Union[int, bool]]] = None
-    isDefaultCase: bool = False
+
+
+@dataclass
+class UnionCase:
+    """A single case within a union definition."""
+
+    predicates: List[Union[int, bool]]
+    type: MessageDefinitionField
 
 
 class AggregatedKind(Enum):
@@ -54,6 +60,8 @@ class MessageDefinition:
     aggregatedKind: AggregatedKind = AggregatedKind.STRUCT
     switchType: Optional[str] = None
     definitions: List[MessageDefinitionField] = dataclass_field(default_factory=list)
+    cases: List[UnionCase] = dataclass_field(default_factory=list)
+    defaultCase: Optional[MessageDefinitionField] = None
 
 
 def is_msg_def_equal(a: MessageDefinition, b: MessageDefinition) -> bool:
@@ -68,5 +76,6 @@ __all__ = [
     "AggregatedKind",
     "MessageDefinition",
     "MessageDefinitionField",
+    "UnionCase",
     "is_msg_def_equal",
 ]
