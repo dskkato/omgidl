@@ -124,12 +124,11 @@ def _convert_field(
     idl_map: IDLMap,
     scope: List[str],
 ) -> MessageDefinitionField:
-    resolved_type, _ = _resolve_scoped_type(field.type, scope, idl_map)
+    current_type, _ = _resolve_scoped_type(field.type, scope, idl_map)
     array_lengths = list(field.array_lengths)
     is_sequence = field.is_sequence
     seq_bound = field.sequence_bound
     visited: set[str] = set()
-    current_type = resolved_type
     while current_type in typedefs and current_type not in visited:
         visited.add(current_type)
         td = typedefs[current_type]
