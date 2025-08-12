@@ -20,21 +20,24 @@ case_predicates: const_value ("," const_value)*
 
 The transformer builds a structured representation using dataclasses. Each case
 stores its predicates and associated field, and the union keeps the discriminator
-type, all cases, and an optional default field【F:python_omgidl/omgidl_parser/parse.py†L48-L53】【F:python_omgidl/omgidl_parser/parse.py†L431-L454】.
+type, all cases, and an optional default field (see
+[`omgidl_parser/parse.py`](../omgidl_parser/parse.py) lines 48–53 and 431–454).
 
 ## Conversion to Message Definitions
 
 During processing, unions are converted into `IDLUnionDefinition` objects. The
 conversion resolves the discriminator type, normalises enum discriminators to
 `uint32`, and converts each case field into the common `MessageDefinitionField`
-structure. Default cases are handled separately【F:python_omgidl/omgidl_parser/process.py†L226-L256】.
+structure. Default cases are handled separately (see
+[`omgidl_parser/process.py`](../omgidl_parser/process.py) lines 226–256).
 
 ## Intermediate Representation
 
 The shared IR for structs, unions, and modules is defined in
 `python_omgidl/message_definition`. A `MessageDefinition` includes a
 `switchType`, a list of `cases`, and an optional `defaultCase` when its
-`aggregatedKind` is `UNION`【F:python_omgidl/message_definition/__init__.py†L41-L64】.
+`aggregatedKind` is `UNION` (see
+[`message_definition/__init__.py`](../message_definition/__init__.py) lines 41–64).
 Each `UnionCase` records the discriminator predicates and the field definition,
 linking union semantics to the generic field representation.
 
@@ -52,9 +55,11 @@ flowchart LR
 
 `DeserializationInfoCache` creates a `UnionDeserializationInfo` containing the
 IDL union definition, flagging whether delimiter and member headers are used and
-building default values for both the discriminator and selected case【F:python_omgidl/omgidl_serialization/deserialization_info_cache.py†L88-L190】.
+building default values for both the discriminator and selected case (see
+[`omgidl_serialization/deserialization_info_cache.py`](../omgidl_serialization/deserialization_info_cache.py) lines 88–190).
 `MessageReader` relies on this metadata to read the discriminator first and then
-the matching case field, supporting both header styles【F:python_omgidl/omgidl_serialization/message_reader.py†L261-L319】.
+the matching case field, supporting both header styles (see
+[`omgidl_serialization/message_reader.py`](../omgidl_serialization/message_reader.py) lines 261–319).
 Similar logic in `message_writer.py` writes the discriminator and selected case
 while respecting Extensible CDR header rules.
 
